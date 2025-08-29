@@ -1,0 +1,269 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useGame } from '../context/GameContext';
+import SafeIcon from '../common/SafeIcon';
+import * as FiIcons from 'react-icons/fi';
+
+const { FiUser, FiMapPin, FiArrowRight, FiShuffle, FiChevronLeft } = FiIcons;
+
+export default function CharacterCreation() {
+  const navigate = useNavigate();
+  const { dispatch } = useGame();
+  
+  const [step, setStep] = useState(1);
+  const [character, setCharacter] = useState({
+    stageName: '',
+    avatar: 1,
+    city: 'Los Angeles'
+  });
+
+  const avatars = [
+    { id: 1, name: 'Street Style', emoji: '🎤' },
+    { id: 2, name: 'Classic Rapper', emoji: '👨‍🎤' },
+    { id: 3, name: 'Modern Artist', emoji: '🕺' },
+    { id: 4, name: 'Underground', emoji: '🎭' },
+    { id: 5, name: 'Luxury Rap', emoji: '💎' },
+    { id: 6, name: 'Female MC', emoji: '👩‍🎤' },
+    { id: 7, name: 'Rising Star', emoji: '⭐' },
+    { id: 8, name: 'Veteran', emoji: '🎯' }
+  ];
+
+  const cities = [
+    { name: 'Los Angeles', boost: 'Fame Boost', flag: '🌴', color: 'bg-ios-orange' },
+    { name: 'New York', boost: 'Reputation Boost', flag: '🗽', color: 'bg-ios-blue' },
+    { name: 'Atlanta', boost: 'Fan Growth', flag: '🍑', color: 'bg-ios-green' },
+    { name: 'Chicago', boost: 'Business Boost', flag: '🏙️', color: 'bg-ios-purple' }
+  ];
+
+  const randomNames = [
+    'Lil Cipher', 'MC Thunder', 'Rap Phantom', 'Young Legend', 'Flow Master',
+    'Beat King', 'Rhyme Slayer', 'Street Prophet', 'Golden Voice', 'Mic Drop'
+  ];
+
+  const generateRandomName = () => {
+    const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
+    setCharacter({ ...character, stageName: randomName });
+  };
+
+  const handleNext = () => {
+    if (step < 3) {
+      setStep(step + 1);
+    } else {
+      handleStartCareer();
+    }
+  };
+
+  const handleStartCareer = () => {
+    dispatch({ type: 'CREATE_CHARACTER', payload: character });
+    navigate('/game/home');
+  };
+
+  return (
+    <div className="min-h-screen bg-ios-bg">
+      {/* Header */}
+      <div className="bg-white px-6 py-4 shadow-ios">
+        <div className="flex items-center justify-between pt-8">
+          <button 
+            onClick={() => step > 1 ? setStep(step - 1) : navigate('/menu')}
+            className="p-2 hover:bg-ios-gray6 rounded-full transition-colors"
+          >
+            <SafeIcon icon={FiChevronLeft} className="text-xl text-ios-blue" />
+          </button>
+          
+          <div className="flex-1 text-center">
+            <h1 className="text-lg font-semibold text-gray-900">Create Artist</h1>
+            <div className="flex justify-center space-x-2 mt-2">
+              {[1, 2, 3].map((num) => (
+                <div
+                  key={num}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    step >= num ? 'bg-ios-blue' : 'bg-ios-gray4'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="w-10"></div>
+        </div>
+      </div>
+
+      <div className="px-6 py-6">
+        {/* Step 1: Avatar Selection */}
+        {step === 1 && (
+          <motion.div
+            className="space-y-6"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+          >
+            <div className="text-center">
+              <SafeIcon icon={FiUser} className="text-4xl text-ios-blue mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Your Avatar</h2>
+              <p className="text-ios-gray">Pick your rap style</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {avatars.map((avatar) => (
+                <motion.button
+                  key={avatar.id}
+                  onClick={() => setCharacter({ ...character, avatar: avatar.id })}
+                  className={`p-6 rounded-ios-lg transition-all ${
+                    character.avatar === avatar.id
+                      ? 'bg-ios-blue shadow-ios-lg border-2 border-ios-blue'
+                      : 'bg-white shadow-ios border-2 border-transparent hover:shadow-ios-lg'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="text-4xl mb-3">{avatar.emoji}</div>
+                  <div className={`text-sm font-medium ${
+                    character.avatar === avatar.id ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {avatar.name}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 2: Stage Name */}
+        {step === 2 && (
+          <motion.div
+            className="space-y-6"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-4">🎤</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Stage Name</h2>
+              <p className="text-ios-gray">How will fans know you?</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-white rounded-ios-lg shadow-ios p-4">
+                <input
+                  type="text"
+                  value={character.stageName}
+                  onChange={(e) => setCharacter({ ...character, stageName: e.target.value })}
+                  placeholder="Enter your stage name"
+                  className="w-full text-lg font-medium text-gray-900 placeholder-ios-gray bg-transparent border-none outline-none"
+                  maxLength={20}
+                />
+              </div>
+
+              <button
+                onClick={generateRandomName}
+                className="w-full flex items-center justify-center space-x-2 p-4 bg-ios-gray5 rounded-ios-lg hover:bg-ios-gray4 transition-colors"
+              >
+                <SafeIcon icon={FiShuffle} className="text-lg text-ios-gray" />
+                <span className="font-medium text-ios-gray">Generate Random Name</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: City Selection */}
+        {step === 3 && (
+          <motion.div
+            className="space-y-6"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+          >
+            <div className="text-center">
+              <SafeIcon icon={FiMapPin} className="text-4xl text-ios-blue mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Your City</h2>
+              <p className="text-ios-gray">Each city provides unique benefits</p>
+            </div>
+
+            <div className="space-y-3">
+              {cities.map((city) => (
+                <motion.button
+                  key={city.name}
+                  onClick={() => setCharacter({ ...character, city: city.name })}
+                  className={`w-full flex items-center justify-between p-4 rounded-ios-lg transition-all ${
+                    character.city === city.name
+                      ? 'bg-ios-blue shadow-ios-lg'
+                      : 'bg-white shadow-ios hover:shadow-ios-lg'
+                  }`}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 ${city.color} rounded-ios flex items-center justify-center text-xl`}>
+                      {city.flag}
+                    </div>
+                    <div className="text-left">
+                      <div className={`font-semibold ${
+                        character.city === city.name ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {city.name}
+                      </div>
+                      <div className={`text-sm ${
+                        character.city === city.name ? 'text-white/80' : 'text-ios-gray'
+                      }`}>
+                        {city.boost}
+                      </div>
+                    </div>
+                  </div>
+                  {character.city === city.name && (
+                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                      <div className="w-3 h-3 bg-ios-blue rounded-full"></div>
+                    </div>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Character Preview */}
+            <div className="bg-white rounded-ios-lg shadow-ios p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Preview</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-ios-gray">Avatar:</span>
+                  <span className="font-medium text-gray-900">
+                    {avatars.find(a => a.id === character.avatar)?.name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ios-gray">Stage Name:</span>
+                  <span className="font-medium text-ios-blue">
+                    {character.stageName || 'Not set'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ios-gray">City:</span>
+                  <span className="font-medium text-gray-900">{character.city}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ios-gray">Starting Age:</span>
+                  <span className="font-medium text-gray-900">20 years</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Next Button */}
+        <div className="fixed bottom-8 left-6 right-6">
+          <button
+            onClick={handleNext}
+            disabled={step === 2 && !character.stageName.trim()}
+            className={`w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-ios-lg font-semibold text-white transition-all ${
+              (step === 2 && !character.stageName.trim())
+                ? 'bg-ios-gray3 cursor-not-allowed'
+                : 'bg-ios-blue shadow-ios-lg hover:shadow-ios-xl active:scale-95'
+            }`}
+          >
+            <span>{step === 3 ? 'Start Career' : 'Continue'}</span>
+            <SafeIcon icon={FiArrowRight} className="text-lg" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
