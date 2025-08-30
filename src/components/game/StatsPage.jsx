@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiStar, FiTrendingUp, FiUsers, FiDollarSign, FiMusic, FiDisc, FiVideo, FiCalendar, FiTarget, FiEye, FiPlay, FiYoutube, FiAward, FiCrown } = FiIcons;
+const { FiStar, FiTrendingUp, FiUsers, FiDollarSign, FiMusic, FiDisc, FiVideo, FiCalendar, FiTarget, FiEye, FiPlay, FiYoutube, FiAward, FiCrown, FiBarChart, FiActivity } = FiIcons;
 
 export default function StatsPage() {
   const { state } = useGame();
@@ -68,9 +68,16 @@ export default function StatsPage() {
   const totalStreams = releases.reduce((sum, release) => sum + (release.streams || 0), 0);
   const avgViewsPerRelease = releases.length > 0 ? Math.floor(totalViews / releases.length) : 0;
   const trendingReleases = releases.filter(r => r.trending).length;
-  const chartHits = releases.filter(r => r.peakPosition && r.peakPosition <= 10).length;
-
+  const chartHits = releases.filter(r => r.chartPosition && r.chartPosition <= 10).length;
+  const viralHits = releases.filter(r => r.isViral).length;
+  
   const careerLevel = getCareerLevel();
+
+  // Enhanced performance metrics
+  const thisWeekViews = releases.reduce((sum, release) => sum + (release.weeklyViews || 0), 0);
+  const peakWeeklyViews = Math.max(...releases.map(r => r.peakWeeklyViews || 0), 0);
+  const avgWeeklyViews = releases.length > 0 ? 
+    releases.reduce((sum, release) => sum + (release.avgWeeklyViews || 0), 0) / releases.length : 0;
 
   // Calculate milestones
   const milestones = [
@@ -81,8 +88,17 @@ export default function StatsPage() {
     { achieved: totalViews >= 100000, title: 'Viral Success', description: '100K total views', icon: FiEye },
     { achieved: earnings.total >= 10000, title: 'Money Maker', description: 'Earn $10,000', icon: FiDollarSign },
     { achieved: chartHits >= 1, title: 'Chart Success', description: 'Get a top 10 hit', icon: FiAward },
-    { achieved: player.netWorth >= 100000, title: 'Wealthy Artist', description: 'Net worth $100K', icon: FiCrown }
+    { achieved: player.netWorth >= 100000, title: 'Wealthy Artist', description: 'Net worth $100K', icon: FiCrown },
+    { achieved: viralHits >= 1, title: 'Viral Star', description: 'Get a viral hit', icon: FiActivity },
+    { achieved: totalViews >= 1000000, title: 'Million Views', description: '1M total views', icon: FiBarChart }
   ];
+
+  const formatNumber = (num) => {
+    if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)}B`;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
 
   return (
     <div className="min-h-screen bg-ios-bg pb-24 pt-24">
@@ -141,6 +157,48 @@ export default function StatsPage() {
                 <p className="text-xs text-ios-gray2">{stat.description}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+
+        {/* Enhanced Performance Metrics */}
+        <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <SafeIcon icon={FiBarChart} className="text-ios-blue" />
+            <span>Performance Analytics</span>
+          </h2>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="text-center p-3 bg-ios-gray6 rounded-ios">
+              <div className="text-2xl font-bold text-ios-blue">{formatNumber(totalViews)}</div>
+              <div className="text-sm text-ios-gray">Total Views</div>
+            </div>
+            <div className="text-center p-3 bg-ios-gray6 rounded-ios">
+              <div className="text-2xl font-bold text-ios-green">{formatNumber(totalStreams)}</div>
+              <div className="text-sm text-ios-gray">Total Streams</div>
+            </div>
+            <div className="text-center p-3 bg-ios-gray6 rounded-ios">
+              <div className="text-2xl font-bold text-ios-orange">{formatNumber(thisWeekViews)}</div>
+              <div className="text-sm text-ios-gray">This Week Views</div>
+            </div>
+            <div className="text-center p-3 bg-ios-gray6 rounded-ios">
+              <div className="text-2xl font-bold text-ios-purple">{formatNumber(peakWeeklyViews)}</div>
+              <div className="text-sm text-ios-gray">Peak Weekly Views</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <div className="text-lg font-bold text-ios-red">{viralHits}</div>
+              <div className="text-xs text-ios-gray">Viral Hits</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-ios-blue">{chartHits}</div>
+              <div className="text-xs text-ios-gray">Chart Hits</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-ios-green">{trendingReleases}</div>
+              <div className="text-xs text-ios-gray">Trending Now</div>
+            </div>
           </div>
         </div>
 
@@ -207,36 +265,6 @@ export default function StatsPage() {
           </div>
         </div>
 
-        {/* Performance Metrics */}
-        <div className="bg-white p-4 rounded-ios-lg shadow-ios">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Performance Metrics</h2>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-ios-blue">{totalViews.toLocaleString()}</div>
-              <div className="text-sm text-ios-gray">Total Views</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-ios-green">{totalStreams.toLocaleString()}</div>
-              <div className="text-sm text-ios-gray">Total Streams</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-ios-orange">{avgViewsPerRelease.toLocaleString()}</div>
-              <div className="text-sm text-ios-gray">Avg Views/Release</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-ios-purple">{chartHits}</div>
-              <div className="text-sm text-ios-gray">Chart Hits</div>
-            </div>
-          </div>
-          
-          {trendingReleases > 0 && (
-            <div className="mt-4 p-3 bg-red-50 rounded-ios text-center">
-              <div className="text-lg font-bold text-red-600">🔥 {trendingReleases}</div>
-              <div className="text-sm text-red-500">Trending Releases</div>
-            </div>
-          )}
-        </div>
-
         {/* Skills Overview */}
         <div>
           <h2 className="text-lg font-bold text-gray-900 mb-4">Skills Overview</h2>
@@ -266,51 +294,7 @@ export default function StatsPage() {
           </div>
         </div>
 
-        {/* Milestones */}
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Career Milestones</h2>
-          <div className="grid grid-cols-1 gap-3">
-            {milestones.map((milestone, index) => (
-              <motion.div
-                key={milestone.title}
-                className={`p-4 rounded-ios-lg shadow-ios flex items-center space-x-3 ${
-                  milestone.achieved ? 'bg-green-50 border-l-4 border-green-400' : 'bg-white'
-                }`}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <div className={`p-2 rounded-full ${
-                  milestone.achieved ? 'bg-green-100' : 'bg-ios-gray5'
-                }`}>
-                  <SafeIcon 
-                    icon={milestone.icon} 
-                    className={`${
-                      milestone.achieved ? 'text-green-600' : 'text-ios-gray'
-                    }`} 
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className={`font-semibold ${
-                    milestone.achieved ? 'text-green-800' : 'text-gray-900'
-                  }`}>
-                    {milestone.title}
-                  </div>
-                  <div className={`text-sm ${
-                    milestone.achieved ? 'text-green-600' : 'text-ios-gray'
-                  }`}>
-                    {milestone.description}
-                  </div>
-                </div>
-                {milestone.achieved && (
-                  <div className="text-green-500 text-xl">✓</div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Top Releases */}
+        {/* Top Releases with Enhanced Stats */}
         {releases.length > 0 && (
           <div>
             <h2 className="text-lg font-bold text-gray-900 mb-4">Top Performing Releases</h2>
@@ -326,32 +310,59 @@ export default function StatsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center space-x-3 flex-1">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
                           index === 0 ? 'bg-rap-gold' : index === 1 ? 'bg-ios-gray' : 'bg-ios-orange'
                         }`}>
                           {index + 1}
                         </div>
-                        <div>
-                          <div className="font-semibold text-gray-900 flex items-center space-x-2">
-                            <span>{release.title}</span>
-                            {release.trending && <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">🔥</span>}
-                            {release.peakPosition && release.peakPosition <= 10 && (
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900 flex items-center space-x-2 mb-1">
+                            <span className="truncate">{release.title}</span>
+                            {release.isViral && <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">🔥 VIRAL</span>}
+                            {release.trending && <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">📈 TRENDING</span>}
+                            {release.chartPosition && release.chartPosition <= 10 && (
                               <span className="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full">
-                                #{release.peakPosition}
+                                #{release.chartPosition}
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-ios-gray capitalize">{release.type}</div>
+                          <div className="text-sm text-ios-gray capitalize mb-1">{release.type}</div>
+                          <div className="flex items-center space-x-4 text-xs text-ios-gray2">
+                            <span>Weekly: {formatNumber(release.weeklyViews || 0)}</span>
+                            <span>Peak: {formatNumber(release.peakWeeklyViews || 0)}</span>
+                            {release.growthRate && (
+                              <span className={release.growthRate > 0 ? 'text-ios-green' : 'text-ios-red'}>
+                                {release.growthRate > 0 ? '↗' : '↘'} {Math.abs(release.growthRate).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="flex items-center space-x-1 text-ios-blue">
+                        <div className="flex items-center space-x-1 text-ios-blue mb-1">
                           <SafeIcon icon={FiEye} className="text-sm" />
-                          <span className="font-bold">{release.views.toLocaleString()}</span>
+                          <span className="font-bold">{formatNumber(release.views)}</span>
                         </div>
                         <div className="text-sm text-ios-green">${release.earnings.toFixed(2)}</div>
+                        {release.streams && (
+                          <div className="text-xs text-ios-purple">{formatNumber(release.streams)} streams</div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Performance indicators */}
+                    <div className="flex items-center space-x-2 text-xs">
+                      <div className={`px-2 py-1 rounded-full ${
+                        release.ageMultiplier > 0.8 ? 'bg-ios-green/10 text-ios-green' :
+                        release.ageMultiplier > 0.5 ? 'bg-ios-orange/10 text-ios-orange' :
+                        'bg-ios-red/10 text-ios-red'
+                      }`}>
+                        {release.ageMultiplier > 0.8 ? 'Fresh' : release.ageMultiplier > 0.5 ? 'Aging' : 'Old'}
+                      </div>
+                      <div className="text-ios-gray">
+                        Quality: {release.quality}/10
                       </div>
                     </div>
                   </motion.div>
@@ -359,6 +370,39 @@ export default function StatsPage() {
             </div>
           </div>
         )}
+
+        {/* Milestones */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Career Milestones</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {milestones.map((milestone, index) => (
+              <motion.div
+                key={milestone.title}
+                className={`p-4 rounded-ios-lg shadow-ios flex items-center space-x-3 ${
+                  milestone.achieved ? 'bg-green-50 border-l-4 border-green-400' : 'bg-white'
+                }`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div className={`p-2 rounded-full ${milestone.achieved ? 'bg-green-100' : 'bg-ios-gray5'}`}>
+                  <SafeIcon icon={milestone.icon} className={`${milestone.achieved ? 'text-green-600' : 'text-ios-gray'}`} />
+                </div>
+                <div className="flex-1">
+                  <div className={`font-semibold ${milestone.achieved ? 'text-green-800' : 'text-gray-900'}`}>
+                    {milestone.title}
+                  </div>
+                  <div className={`text-sm ${milestone.achieved ? 'text-green-600' : 'text-ios-gray'}`}>
+                    {milestone.description}
+                  </div>
+                </div>
+                {milestone.achieved && (
+                  <div className="text-green-500 text-xl">✓</div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
 
         {/* Goals */}
         <div>
@@ -398,6 +442,12 @@ export default function StatsPage() {
               <div className="bg-white p-3 rounded-ios-lg shadow-ios flex items-center space-x-3">
                 <SafeIcon icon={FiAward} className="text-rap-gold" />
                 <span className="text-sm text-gray-700">Get your first top 10 hit</span>
+              </div>
+            )}
+            {viralHits === 0 && (
+              <div className="bg-white p-3 rounded-ios-lg shadow-ios flex items-center space-x-3">
+                <SafeIcon icon={FiActivity} className="text-ios-red" />
+                <span className="text-sm text-gray-700">Create your first viral hit</span>
               </div>
             )}
           </div>

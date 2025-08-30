@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
@@ -9,14 +9,17 @@ const { FiUser, FiMapPin, FiArrowRight, FiShuffle, FiChevronLeft } = FiIcons;
 
 export default function CharacterCreation() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { dispatch } = useGame();
-  
   const [step, setStep] = useState(1);
   const [character, setCharacter] = useState({
     stageName: '',
     avatar: 1,
     city: 'Los Angeles'
   });
+
+  // Get slot from navigation state (for new careers from save page)
+  const targetSlot = location.state?.slot;
 
   const avatars = [
     { id: 1, name: 'Street Style', emoji: '🎤' },
@@ -54,8 +57,81 @@ export default function CharacterCreation() {
     }
   };
 
+  const findAvailableSlot = () => {
+    // If we have a target slot, use it
+    if (targetSlot) return targetSlot;
+    
+    // Otherwise find first available slot
+    for (let i = 1; i <= 3; i++) {
+      const save = localStorage.getItem(`rapCareer_slot_${i}`);
+      if (!save) return i;
+    }
+    return null; // No slots available
+  };
+
   const handleStartCareer = () => {
-    dispatch({ type: 'CREATE_CHARACTER', payload: character });
+    const slot = findAvailableSlot();
+    if (!slot) {
+      alert('No available slots! This should not happen.');
+      return;
+    }
+
+    // Create initial game state
+    const gameState = {
+      player: {
+        stageName: character.stageName,
+        avatar: character.avatar,
+        city: character.city,
+        age: 20,
+        year: 2020,
+        week: 1,
+        fame: 0,
+        reputation: 0,
+        fans: 0,
+        netWorth: 100,
+        energy: 100,
+        skills: {
+          lyrics: 1,
+          flow: 1,
+          charisma: 1,
+          business: 1,
+          production: 1
+        },
+        socialMedia: {
+          rapgram: { followers: 0, posts: 0 },
+          raptube: { subscribers: 0, videos: 0, totalViews: 0 },
+          rapify: { listeners: 0, streams: 0 },
+          riktok: { followers: 0, videos: 0 }
+        },
+        achievements: [],
+        inventory: []
+      },
+      tracks: [],
+      albums: [],
+      musicVideos: [],
+      socialPosts: [],
+      releases: [],
+      earnings: {
+        total: 0,
+        thisWeek: 0,
+        streaming: 0,
+        youtube: 0,
+        concerts: 0,
+        merchandise: 0
+      },
+      gameStarted: true,
+      currentPage: 'home',
+      notifications: [],
+      randomEvents: [],
+      lastPlayed: new Date().toISOString(),
+      slot: slot
+    };
+
+    // Save to specific slot
+    localStorage.setItem(`rapCareer_slot_${slot}`, JSON.stringify(gameState));
+
+    // Load into current game state
+    dispatch({ type: 'LOAD_GAME_STATE', payload: gameState });
     navigate('/game/home');
   };
 
@@ -64,13 +140,12 @@ export default function CharacterCreation() {
       {/* Header */}
       <div className="bg-white px-6 py-4 shadow-ios">
         <div className="flex items-center justify-between pt-8">
-          <button 
+          <button
             onClick={() => step > 1 ? setStep(step - 1) : navigate('/menu')}
             className="p-2 hover:bg-ios-gray6 rounded-full transition-colors"
           >
             <SafeIcon icon={FiChevronLeft} className="text-xl text-ios-blue" />
           </button>
-          
           <div className="flex-1 text-center">
             <h1 className="text-lg font-semibold text-gray-900">Create Artist</h1>
             <div className="flex justify-center space-x-2 mt-2">
@@ -84,7 +159,6 @@ export default function CharacterCreation() {
               ))}
             </div>
           </div>
-          
           <div className="w-10"></div>
         </div>
       </div>

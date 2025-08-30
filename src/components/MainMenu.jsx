@@ -1,102 +1,269 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiPlay, FiSettings, FiFolderOpen, FiShoppingBag, FiMusic } = FiIcons;
+const { FiPlay, FiSettings, FiFolderOpen, FiMusic, FiPlus, FiTrash2, FiEdit3, FiUser, FiChevronLeft } = FiIcons;
 
 export default function MainMenu() {
   const navigate = useNavigate();
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
+  const [showSaves, setShowSaves] = useState(false);
+  const [savedCareers, setSavedCareers] = useState([]);
+
+  useEffect(() => {
+    loadSavedCareers();
+  }, []);
+
+  const loadSavedCareers = () => {
+    const saves = [];
+    for (let i = 1; i <= 3; i++) {
+      const save = localStorage.getItem(`rapCareer_slot_${i}`);
+      if (save) {
+        try {
+          const careerData = JSON.parse(save);
+          saves.push({
+            slot: i,
+            ...careerData,
+            lastPlayed: new Date(careerData.lastPlayed || Date.now()).toLocaleDateString()
+          });
+        } catch (error) {
+          console.error(`Error loading save slot ${i}:`, error);
+        }
+      } else {
+        saves.push({
+          slot: i,
+          empty: true
+        });
+      }
+    }
+    setSavedCareers(saves);
+  };
+
+  const handleStartNewGame = () => {
+    // Check if there are available slots
+    const emptySlots = savedCareers.filter(save => save.empty);
+    if (emptySlots.length === 0) {
+      alert('Maximum 3 careers allowed! Please delete a career to create a new one.');
+      return;
+    }
+    navigate('/character-creation');
+  };
+
+  const handleContinue = () => {
+    setShowSaves(true);
+  };
+
+  const loadCareer = (career) => {
+    if (career.empty) {
+      navigate('/character-creation', { state: { slot: career.slot } });
+      return;
+    }
+
+    try {
+      // Load the complete game state
+      dispatch({ type: 'LOAD_GAME_STATE', payload: career });
+      navigate('/game/home');
+    } catch (error) {
+      console.error('Failed to load career:', error);
+      alert('Failed to load career. The save file may be corrupted.');
+    }
+  };
+
+  const deleteCareer = (slot) => {
+    if (window.confirm('Are you sure you want to delete this career? This action cannot be undone.')) {
+      localStorage.removeItem(`rapCareer_slot_${slot}`);
+      loadSavedCareers();
+    }
+  };
+
+  const hasAnyCareers = savedCareers.some(save => !save.empty);
 
   const menuItems = [
     {
-      icon: FiPlay,
-      label: 'Start Game',
-      action: () => navigate(state.gameStarted ? '/game/home' : '/character-creation'),
+      icon: FiPlus,
+      label: 'New Career',
+      action: handleStartNewGame,
       primary: true,
       color: 'bg-gradient-to-r from-ios-blue to-ios-indigo'
     },
     {
       icon: FiFolderOpen,
       label: 'Continue',
-      action: () => navigate('/game/home'),
+      action: handleContinue,
       primary: false,
-      disabled: !state.gameStarted,
+      disabled: !hasAnyCareers,
       color: 'bg-ios-green'
     },
     {
       icon: FiSettings,
       label: 'Settings',
-      action: () => console.log('Settings'),
+      action: () => navigate('/settings'),
       primary: false,
       color: 'bg-ios-gray'
-    },
-    {
-      icon: FiShoppingBag,
-      label: 'Store',
-      action: () => console.log('Shop'),
-      primary: false,
-      color: 'bg-ios-purple'
     }
   ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-ios-bg to-white flex flex-col px-6 py-12">
-      {/* Status Bar Spacer */}
-      <div className="h-8"></div>
-
-      {/* Logo Section */}
-      <motion.div
-        className="flex-1 flex flex-col items-center justify-center"
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <div className="w-20 h-20 bg-gradient-to-br from-rap-gold to-ios-orange rounded-ios-xl shadow-ios-lg flex items-center justify-center mb-6">
-          <SafeIcon icon={FiMusic} className="text-3xl text-white" />
-        </div>
-        
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">RapMaster</h1>
-        <p className="text-lg text-ios-gray mb-12">Build your rap empire</p>
-
-        {/* Menu Items */}
-        <div className="w-full max-w-sm space-y-3">
-          {menuItems.map((item, index) => (
-            <motion.button
-              key={item.label}
-              onClick={item.action}
-              disabled={item.disabled}
-              className={`w-full flex items-center justify-center space-x-3 py-4 px-6 rounded-ios-lg font-semibold text-white transition-all duration-200 ${
-                item.disabled
-                  ? 'bg-ios-gray3 text-ios-gray cursor-not-allowed'
-                  : `${item.color} shadow-ios hover:shadow-ios-lg active:scale-95`
-              }`}
-              initial={{ x: -30, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 * index }}
-              whileHover={!item.disabled ? { scale: 1.02 } : {}}
-              whileTap={!item.disabled ? { scale: 0.98 } : {}}
+  if (showSaves) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-ios-bg to-white">
+        <div className="max-w-sm mx-auto px-4 py-8">
+          <div className="h-8"></div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => setShowSaves(false)}
+              className="p-2 hover:bg-ios-gray6 rounded-full transition-colors"
             >
-              <SafeIcon icon={item.icon} className="text-xl" />
-              <span className="text-base font-medium">{item.label}</span>
-            </motion.button>
-          ))}
-        </div>
-      </motion.div>
+              <SafeIcon icon={FiChevronLeft} className="text-xl text-ios-blue" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-900">Select Career</h1>
+            <div className="w-10"></div>
+          </div>
 
-      {/* Footer */}
-      <motion.div
-        className="text-center text-ios-gray text-sm pt-8"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.6 }}
-      >
-        <p>Version 1.0.0</p>
-        <p className="mt-1">© 2024 FHX Studios</p>
-      </motion.div>
+          {/* Career Slots */}
+          <div className="space-y-3">
+            {savedCareers.map((career, index) => (
+              <motion.div
+                key={career.slot}
+                className={`bg-white rounded-ios-lg shadow-ios p-4 ${
+                  career.empty ? 'border-2 border-dashed border-ios-gray4' : ''
+                }`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                {career.empty ? (
+                  <button
+                    onClick={() => loadCareer(career)}
+                    className="w-full flex flex-col items-center justify-center py-6 text-ios-gray hover:text-gray-900 transition-colors"
+                  >
+                    <SafeIcon icon={FiPlus} className="text-3xl mb-2" />
+                    <span className="text-sm font-medium">Create New Career</span>
+                    <span className="text-xs">Slot {career.slot}</span>
+                  </button>
+                ) : (
+                  <div>
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-ios-blue to-ios-purple rounded-ios-lg flex items-center justify-center text-lg text-white">
+                        🎤
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-base font-bold text-gray-900">
+                          {career.player?.stageName || 'Unknown Artist'}
+                        </h3>
+                        <p className="text-xs text-ios-gray">
+                          Age {career.player?.age || 20} • {career.player?.city || 'Unknown City'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Updated display format */}
+                    <div className="bg-ios-gray6 p-3 rounded-ios mb-3">
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div>
+                          <div className="font-medium text-gray-900">{career.lastPlayed}</div>
+                          <div className="text-ios-gray">Date</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-ios-orange">{career.player?.fame || 0}</div>
+                          <div className="text-ios-gray">Fame</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-ios-blue">
+                            {career.player?.week || 1}/{career.player?.year || 2020}
+                          </div>
+                          <div className="text-ios-gray">Week</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => loadCareer(career)}
+                        className="flex-1 bg-ios-blue text-white py-2 px-4 rounded-ios font-semibold hover:shadow-ios transition-all text-sm"
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => deleteCareer(career.slot)}
+                        className="bg-ios-red text-white py-2 px-3 rounded-ios hover:shadow-ios transition-all"
+                      >
+                        <SafeIcon icon={FiTrash2} className="text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Career Counter */}
+          <div className="text-center text-ios-gray text-xs mt-4">
+            {savedCareers.filter(save => !save.empty).length} / 3 careers created
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-ios-bg to-white">
+      <div className="max-w-sm mx-auto px-4 py-8 flex flex-col min-h-screen">
+        {/* Status Bar Spacer */}
+        <div className="h-8"></div>
+
+        {/* Logo Section */}
+        <motion.div
+          className="flex-1 flex flex-col items-center justify-center"
+          initial={{ y: -30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="w-16 h-16 bg-gradient-to-br from-rap-gold to-ios-orange rounded-ios-xl shadow-ios-lg flex items-center justify-center mb-4">
+            <SafeIcon icon={FiMusic} className="text-2xl text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">RapMaster</h1>
+          <p className="text-base text-ios-gray mb-8">Build your rap empire</p>
+
+          {/* Menu Items */}
+          <div className="w-full space-y-3">
+            {menuItems.map((item, index) => (
+              <motion.button
+                key={item.label}
+                onClick={item.action}
+                disabled={item.disabled}
+                className={`w-full flex items-center justify-center space-x-3 py-3 px-6 rounded-ios-lg font-semibold text-white transition-all duration-200 ${
+                  item.disabled
+                    ? 'bg-ios-gray3 text-ios-gray cursor-not-allowed'
+                    : `${item.color} shadow-ios hover:shadow-ios-lg active:scale-95`
+                }`}
+                initial={{ x: -30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 * index }}
+                whileHover={!item.disabled ? { scale: 1.02 } : {}}
+                whileTap={!item.disabled ? { scale: 0.98 } : {}}
+              >
+                <SafeIcon icon={item.icon} className="text-lg" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div
+          className="text-center text-ios-gray text-xs pt-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <p>Version 1.0.0</p>
+          <p className="mt-1">© 2024 FHX Studios</p>
+        </motion.div>
+      </div>
     </div>
   );
 }

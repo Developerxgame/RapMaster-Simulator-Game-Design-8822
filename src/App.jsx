@@ -4,6 +4,7 @@ import { GameProvider } from './context/GameContext';
 import SplashScreen from './components/SplashScreen';
 import MainMenu from './components/MainMenu';
 import CharacterCreation from './components/CharacterCreation';
+import SettingsPage from './components/SettingsPage';
 import GameLayout from './components/GameLayout';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
             <Route path="/" element={<SplashScreen />} />
             <Route path="/menu" element={<MainMenu />} />
             <Route path="/character-creation" element={<CharacterCreation />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/game/*" element={<GameLayout />} />
           </Routes>
         </div>

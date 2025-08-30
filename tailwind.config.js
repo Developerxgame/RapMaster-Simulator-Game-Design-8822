@@ -39,9 +39,9 @@ export default {
         'ios-xl': '20px',
       },
       boxShadow: {
-        'ios': '0 1px 3px rgba(0, 0, 0, 0.1)',
-        'ios-lg': '0 4px 16px rgba(0, 0, 0, 0.1)',
-        'ios-xl': '0 8px 32px rgba(0, 0, 0, 0.15)',
+        'ios': '0 1px 3px rgba(0,0,0,0.1)',
+        'ios-lg': '0 4px 16px rgba(0,0,0,0.1)',
+        'ios-xl': '0 8px 32px rgba(0,0,0,0.15)',
       },
       animation: {
         'glow': 'glow 2s ease-in-out infinite alternate',
@@ -63,6 +63,17 @@ export default {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         }
+      },
+      screens: {
+        'xs': '375px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+      },
+      maxWidth: {
+        'mobile': '428px',
       }
     },
   },

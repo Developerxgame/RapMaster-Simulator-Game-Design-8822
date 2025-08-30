@@ -10,6 +10,9 @@ import SocialMediaPage from './game/SocialMediaPage';
 import ShopPage from './game/ShopPage';
 import StatsPage from './game/StatsPage';
 import SkillsPage from './game/SkillsPage';
+import CollaborationsPage from './game/CollaborationsPage';
+import ConcertsPage from './game/ConcertsPage';
+import AwardsPage from './game/AwardsPage';
 
 export default function GameLayout() {
   const { state } = useGame();
@@ -17,7 +20,6 @@ export default function GameLayout() {
   return (
     <div className="min-h-screen bg-rap-dark text-white flex flex-col">
       <Header />
-      
       <main className="flex-1 pb-20 pt-16">
         <Routes>
           <Route path="/home" element={<HomePage />} />
@@ -27,9 +29,11 @@ export default function GameLayout() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
+          <Route path="/collaborations" element={<CollaborationsPage />} />
+          <Route path="/concerts" element={<ConcertsPage />} />
+          <Route path="/awards" element={<AwardsPage />} />
         </Routes>
       </main>
-
       <BottomNav />
     </div>
   );

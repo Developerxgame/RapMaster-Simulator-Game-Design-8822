@@ -9,7 +9,6 @@ const { FiZap, FiTrendingUp, FiBook, FiMic, FiHeart, FiBriefcase, FiMusic } = Fi
 export default function SkillsPage() {
   const { state, dispatch } = useGame();
   const { player } = state;
-  const [selectedSkill, setSelectedSkill] = useState(null);
 
   const skills = [
     {
@@ -69,14 +68,22 @@ export default function SkillsPage() {
     }
   ];
 
+  // Calculate upgrade cost based on current level - escalating system
   const getUpgradeCost = (currentLevel) => {
-    return currentLevel * 2; // Energy cost increases with level
+    if (currentLevel < 25) return 2;   // 0-24: 2 energy
+    if (currentLevel < 50) return 4;   // 25-49: 4 energy
+    if (currentLevel < 75) return 6;   // 50-74: 6 energy
+    if (currentLevel < 90) return 8;   // 75-89: 8 energy
+    if (currentLevel < 95) return 12;  // 90-94: 12 energy
+    if (currentLevel < 98) return 16;  // 95-97: 16 energy
+    if (currentLevel < 99) return 25;  // 98: 25 energy
+    return 100; // 99-100: 100 energy (max level)
   };
 
   const upgradeSkill = (skillId) => {
     const skill = skills.find(s => s.id === skillId);
     const cost = getUpgradeCost(skill.current);
-
+    
     if (player.energy >= cost && skill.current < skill.max) {
       dispatch({
         type: 'UPDATE_PLAYER',
@@ -88,6 +95,21 @@ export default function SkillsPage() {
           }
         }
       });
+
+      // Add notification for milestone achievements
+      const newLevel = player.skills[skillId] + 1;
+      if (newLevel === 25 || newLevel === 50 || newLevel === 75 || newLevel === 90 || newLevel === 95 || newLevel === 100) {
+        dispatch({
+          type: 'ADD_NOTIFICATION',
+          payload: {
+            id: Date.now(),
+            type: 'success',
+            title: `${skill.name} Milestone!`,
+            message: `Your ${skill.name.toLowerCase()} skill reached level ${newLevel}! ${newLevel === 100 ? 'MASTERED!' : 'Energy cost increases next upgrade.'}`,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
     }
   };
 
@@ -97,11 +119,17 @@ export default function SkillsPage() {
   };
 
   const getSkillLevel = (value) => {
-    if (value >= 80) return { name: 'Master', color: 'text-rap-gold' };
-    if (value >= 60) return { name: 'Expert', color: 'text-ios-purple' };
-    if (value >= 40) return { name: 'Advanced', color: 'text-ios-blue' };
-    if (value >= 20) return { name: 'Intermediate', color: 'text-ios-green' };
+    if (value >= 95) return { name: 'Legendary', color: 'text-rap-gold' };
+    if (value >= 90) return { name: 'Master', color: 'text-ios-purple' };
+    if (value >= 75) return { name: 'Expert', color: 'text-ios-blue' };
+    if (value >= 50) return { name: 'Advanced', color: 'text-ios-green' };
+    if (value >= 25) return { name: 'Intermediate', color: 'text-ios-orange' };
     return { name: 'Beginner', color: 'text-ios-gray' };
+  };
+
+  const getNextMilestone = (currentLevel) => {
+    const milestones = [25, 50, 75, 90, 95, 100];
+    return milestones.find(milestone => milestone > currentLevel) || 100;
   };
 
   return (
@@ -122,7 +150,46 @@ export default function SkillsPage() {
               </div>
               <span className="font-medium text-gray-900">Energy: {player.energy}/100</span>
             </div>
-            <span className="text-sm text-ios-gray">Used to upgrade skills</span>
+            <span className="text-sm text-ios-gray">Escalating energy costs</span>
+          </div>
+        </div>
+
+        {/* Energy Cost System Explanation */}
+        <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+          <h3 className="font-bold text-gray-900 mb-3">Energy Cost System</h3>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Levels 0-24:</span>
+              <span className="font-medium text-ios-orange">2 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Levels 25-49:</span>
+              <span className="font-medium text-ios-orange">4 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Levels 50-74:</span>
+              <span className="font-medium text-ios-orange">6 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Levels 75-89:</span>
+              <span className="font-medium text-ios-orange">8 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Levels 90-94:</span>
+              <span className="font-medium text-ios-red">12 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Levels 95-97:</span>
+              <span className="font-medium text-ios-red">16 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Level 98:</span>
+              <span className="font-medium text-ios-red">25 Energy</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ios-gray">Level 99:</span>
+              <span className="font-medium text-rap-gold">100 Energy</span>
+            </div>
           </div>
         </div>
 
@@ -133,6 +200,7 @@ export default function SkillsPage() {
             const canUpgradeSkill = canUpgrade(skill);
             const skillLevel = getSkillLevel(skill.current);
             const progress = (skill.current / skill.max) * 100;
+            const nextMilestone = getNextMilestone(skill.current);
 
             return (
               <motion.div
@@ -161,20 +229,32 @@ export default function SkillsPage() {
 
                 {/* Progress Bar */}
                 <div className="mb-4">
-                  <div className="w-full bg-ios-gray5 rounded-full h-3 mb-2">
+                  <div className="w-full bg-ios-gray5 rounded-full h-3 mb-2 relative">
                     <motion.div
                       className={`h-3 rounded-full ${
-                        progress >= 80 ? 'bg-rap-gold' :
-                        progress >= 60 ? 'bg-ios-purple' :
-                        progress >= 40 ? 'bg-ios-blue' :
-                        progress >= 20 ? 'bg-ios-green' : 'bg-ios-gray'
+                        progress >= 95 ? 'bg-rap-gold' :
+                        progress >= 90 ? 'bg-ios-purple' :
+                        progress >= 75 ? 'bg-ios-blue' :
+                        progress >= 50 ? 'bg-ios-green' :
+                        progress >= 25 ? 'bg-ios-orange' : 'bg-ios-gray'
                       }`}
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       transition={{ duration: 1, delay: index * 0.2 }}
                     />
+                    {/* Milestone markers */}
+                    {[25, 50, 75, 90, 95].map((milestone) => (
+                      <div
+                        key={milestone}
+                        className="absolute top-0 bottom-0 w-0.5 bg-white"
+                        style={{ left: `${milestone}%` }}
+                      />
+                    ))}
                   </div>
-                  <div className="text-xs text-ios-gray text-center">{progress.toFixed(1)}% Complete</div>
+                  <div className="flex justify-between text-xs text-ios-gray">
+                    <span>{progress.toFixed(1)}% Complete</span>
+                    <span>Next milestone: {nextMilestone}</span>
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -186,7 +266,18 @@ export default function SkillsPage() {
                 {/* Upgrade Section */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-ios-gray">
-                    Next upgrade: <span className="text-ios-orange font-medium">{cost} energy</span>
+                    Upgrade cost: <span className={`font-medium ${
+                      cost <= 6 ? 'text-ios-orange' : 
+                      cost <= 16 ? 'text-ios-red' : 
+                      'text-rap-gold'
+                    }`}>
+                      {cost} energy
+                    </span>
+                    {cost > 6 && (
+                      <div className="text-xs text-ios-red mt-1">
+                        {cost === 100 ? '⚠️ Final upgrade requires full energy!' : '⚠️ High energy cost'}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => upgradeSkill(skill.id)}
@@ -197,10 +288,20 @@ export default function SkillsPage() {
                         : 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
                     }`}
                   >
-                    {skill.current >= skill.max ? 'Maxed' : 
-                     player.energy < cost ? 'Need Energy' : 'Upgrade'}
+                    {skill.current >= skill.max ? 'MASTERED' : 
+                     player.energy < cost ? 'Need Energy' : 
+                     cost === 100 ? 'FINAL UPGRADE' : 'Upgrade'}
                   </button>
                 </div>
+
+                {/* Progress to next milestone */}
+                {skill.current < 100 && (
+                  <div className="mt-3 p-2 bg-ios-blue/5 rounded-ios">
+                    <div className="text-xs text-ios-blue text-center">
+                      {nextMilestone - skill.current} levels to next milestone ({nextMilestone})
+                    </div>
+                  </div>
+                )}
               </motion.div>
             );
           })}
@@ -213,11 +314,11 @@ export default function SkillsPage() {
             <span>Training Tips</span>
           </h3>
           <div className="space-y-2 text-sm text-gray-700">
-            <p>• Higher skills improve track quality and earnings</p>
-            <p>• Energy cost increases as skills get higher</p>
-            <p>• Balanced skills create better overall performance</p>
-            <p>• Some opportunities require minimum skill levels</p>
-            <p>• Energy regenerates when you advance to the next week</p>
+            <p>• Energy costs increase as skills get higher</p>
+            <p>• Reaching level 100 requires 100 energy (full bar)</p>
+            <p>• Plan your upgrades around energy availability</p>
+            <p>• Higher skills dramatically improve content quality</p>
+            <p>• Mastered skills (100) unlock special bonuses</p>
           </div>
         </div>
 
@@ -231,7 +332,7 @@ export default function SkillsPage() {
                 <span className="text-ios-gray">+</span>
                 <span className="text-ios-green font-medium">Flow</span>
               </div>
-              <div className="text-sm text-rap-gold font-medium">Better track quality</div>
+              <div className="text-sm text-rap-gold font-medium">Elite track quality</div>
             </div>
             <div className="flex items-center justify-between p-3 bg-ios-pink/5 rounded-ios">
               <div className="flex items-center space-x-2 text-sm">
@@ -239,7 +340,7 @@ export default function SkillsPage() {
                 <span className="text-ios-gray">+</span>
                 <span className="text-ios-orange font-medium">Business</span>
               </div>
-              <div className="text-sm text-rap-gold font-medium">Higher earnings</div>
+              <div className="text-sm text-rap-gold font-medium">Maximum earnings</div>
             </div>
             <div className="flex items-center justify-between p-3 bg-ios-purple/5 rounded-ios">
               <div className="flex items-center space-x-2 text-sm">
@@ -247,19 +348,21 @@ export default function SkillsPage() {
                 <span className="text-ios-gray">+</span>
                 <span className="text-ios-blue font-medium">Lyrics</span>
               </div>
-              <div className="text-sm text-rap-gold font-medium">Unique sound</div>
+              <div className="text-sm text-rap-gold font-medium">Signature sound</div>
             </div>
           </div>
         </div>
 
-        {/* Skill Investment Strategy */}
-        <div className="bg-gradient-to-r from-ios-blue to-ios-purple p-4 rounded-ios-lg text-white shadow-ios-lg">
-          <h3 className="font-bold mb-3">💡 Pro Tip</h3>
-          <p className="text-sm text-white/90">
-            Focus on <span className="font-semibold">Lyrics</span> and <span className="font-semibold">Flow</span> early 
-            for better track quality, then invest in <span className="font-semibold">Charisma</span> and{' '}
-            <span className="font-semibold">Business</span> to maximize your earnings potential!
-          </p>
+        {/* Mastery Rewards */}
+        <div className="bg-gradient-to-r from-rap-gold to-ios-orange p-4 rounded-ios-lg text-white shadow-ios-lg">
+          <h3 className="font-bold mb-3">🏆 Mastery Rewards</h3>
+          <div className="space-y-2 text-sm text-white/90">
+            <p><span className="font-semibold">Lyrics 100:</span> Write legendary verses</p>
+            <p><span className="font-semibold">Flow 100:</span> Perfect rhythm mastery</p>
+            <p><span className="font-semibold">Charisma 100:</span> Instant viral potential</p>
+            <p><span className="font-semibold">Business 100:</span> Maximum profit margins</p>
+            <p><span className="font-semibold">Production 100:</span> Studio ownership unlock</p>
+          </div>
         </div>
       </div>
     </div>
