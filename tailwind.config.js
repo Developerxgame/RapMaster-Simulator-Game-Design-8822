@@ -7,94 +7,112 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Enhanced rapper/musician theme colors
-        'rap-gold': '#FFD700',
-        'rap-platinum': '#E5E4E2', 
-        'rap-diamond': '#B9F2FF',
-        'rap-purple': '#6B46C1',
-        'rap-dark': '#000000',
-        'rap-gray': '#1C1C1E',
+        // Dark Theme Primary Colors
+        'dark-bg': '#0F0F23',
+        'dark-surface': '#1A1A2E',
+        'dark-card': '#16213E',
+        'dark-border': '#2A2A5C',
         
-        // Premium iOS colors
-        'ios-bg': '#F2F2F7',
-        'ios-card': '#FFFFFF',
-        'ios-secondary': '#F2F2F7',
-        'ios-tertiary': '#F2F2F7',
-        'ios-blue': '#007AFF',
-        'ios-green': '#30D158',
-        'ios-orange': '#FF9F0A',
-        'ios-red': '#FF453A',
-        'ios-purple': '#BF5AF2',
-        'ios-pink': '#FF375F',
-        'ios-teal': '#40C8E0',
-        'ios-indigo': '#5E5CE6',
-        'ios-mint': '#00C7BE',
-        'ios-cyan': '#32D74B',
-        'ios-gray': '#8E8E93',
-        'ios-gray2': '#AEAEB2',
-        'ios-gray3': '#C7C7CC',
-        'ios-gray4': '#D1D1D6',
-        'ios-gray5': '#E5E5EA',
-        'ios-gray6': '#F2F2F7',
+        // Neon Accent Colors
+        'neon-purple': '#8B5CF6',
+        'neon-cyan': '#06B6D4',
+        'neon-pink': '#EC4899',
+        'neon-green': '#10B981',
+        'neon-orange': '#F59E0B',
+        'neon-red': '#EF4444',
+        'neon-yellow': '#EAB308',
+        
+        // Glow Colors
+        'glow-purple': '#A855F7',
+        'glow-cyan': '#22D3EE',
+        'glow-pink': '#F472B6',
+        'glow-green': '#34D399',
+        
+        // Text Colors
+        'text-primary': '#F8FAFC',
+        'text-secondary': '#CBD5E1',
+        'text-muted': '#64748B',
+        'text-disabled': '#475569',
+        
+        // Status Colors
+        'success': '#10B981',
+        'warning': '#F59E0B',
+        'error': '#EF4444',
+        'info': '#06B6D4',
+        
+        // Legacy colors for backward compatibility
+        'rap-gold': '#FFD700',
+        'rap-purple': '#8B5CF6',
+        'rap-dark': '#0F0F23',
       },
       fontFamily: {
-        'ios': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'game': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       borderRadius: {
-        'ios': '10px',
-        'ios-lg': '16px', 
-        'ios-xl': '20px',
+        'game': '12px',
+        'game-lg': '16px',
+        'game-xl': '20px',
+        'game-2xl': '24px',
       },
       boxShadow: {
-        'ios': '0 1px 3px rgba(0,0,0,0.1)',
-        'ios-lg': '0 4px 16px rgba(0,0,0,0.1)',
-        'ios-xl': '0 8px 32px rgba(0,0,0,0.15)',
+        'glow': '0 0 20px rgba(139, 92, 246, 0.3)',
+        'glow-lg': '0 0 40px rgba(139, 92, 246, 0.4)',
+        'glow-xl': '0 0 60px rgba(139, 92, 246, 0.5)',
+        'neon': '0 0 10px currentColor',
+        'neon-lg': '0 0 20px currentColor',
+        'neon-xl': '0 0 30px currentColor',
+        'dark': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
+        'dark-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
+        'dark-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
       },
       animation: {
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'bounce-slow': 'bounce 3s infinite',
-        'pulse-slow': 'pulse 3s infinite',
-        'scale-in': 'scaleIn 0.2s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'slide-in-right': 'slideInRight 0.3s ease-out',
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite alternate',
+        'neon-glow': 'neon-glow 2s ease-in-out infinite alternate',
+        'float': 'float 3s ease-in-out infinite',
+        'slide-in': 'slide-in 0.3s ease-out',
+        'scale-in': 'scale-in 0.2s ease-out',
+        'bounce-glow': 'bounce-glow 1s ease-in-out infinite',
       },
       keyframes: {
-        glow: {
-          '0%': { boxShadow: '0 0 20px #FFD700' },
-          '100%': { boxShadow: '0 0 40px #FFD700, 0 0 60px #FFD700' },
+        'glow-pulse': {
+          '0%': { boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' },
+          '100%': { boxShadow: '0 0 40px rgba(139, 92, 246, 0.8)' },
         },
-        scaleIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
+        'neon-glow': {
+          '0%': { textShadow: '0 0 10px currentColor' },
+          '100%': { textShadow: '0 0 20px currentColor, 0 0 30px currentColor' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        'slide-in': {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        'scale-in': {
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
-        slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+        'bounce-glow': {
+          '0%, 100%': { 
+            transform: 'scale(1)',
+            boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)'
+          },
+          '50%': { 
+            transform: 'scale(1.05)',
+            boxShadow: '0 0 40px rgba(139, 92, 246, 0.6)'
+          },
         },
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideInRight: {
-          '0%': { transform: 'translateX(20px)', opacity: '0' },
-          '100%': { transform: 'translateX(0)', opacity: '1' },
-        }
-      },
-      screens: {
-        'xs': '375px',
-        'sm': '640px',
-        'md': '768px',
-        'lg': '1024px',
-        'xl': '1280px',
-        '2xl': '1536px',
-      },
-      maxWidth: {
-        'mobile': '428px',
       },
       backdropBlur: {
         'xs': '2px',
-      }
+        'sm': '4px',
+      },
+      screens: {
+        'xs': '375px',
+        'mobile': '428px',
+      },
     },
   },
   plugins: [],
