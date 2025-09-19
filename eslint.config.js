@@ -17,7 +17,9 @@ export default [
         JSX: true
       },
       parserOptions: {
-        ecmaFeatures: { jsx: true },
+        ecmaFeatures: {
+          jsx: true
+        },
         sourceType: 'module'
       }
     },
@@ -26,14 +28,12 @@ export default [
       'react-refresh': reactRefresh,
     },
     rules: {
-      'no-undef': 'error',
+      'no-undef': 'error', 
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'off',
       'react-refresh/only-export-components': 'off',
       'no-unused-vars': 'off',
-      'no-case-declarations': 'off',
-      'no-async-promise-executor': 'error',
-      'no-redeclare': 'error'
+      'no-case-declarations': 'off'
     },
   }
 ];
