@@ -4,24 +4,28 @@ import { motion } from 'framer-motion';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiMusic, FiDisc, FiVideo, FiZap, FiStar, FiPlay, FiPlus, FiUpload, FiTrendingUp, FiDollarSign, FiMegaphone, FiRefreshCw, FiEdit3 } = FiIcons;
+const {
+  FiMusic, FiDisc, FiVideo, FiZap, FiStar, FiPlay, FiPlus, FiUpload,
+  FiTrendingUp, FiDollarSign, FiMegaphone, FiRefreshCw, FiEdit3
+} = FiIcons;
 
 export default function MusicStudioPage() {
   const { state, dispatch } = useGame();
   const { player, tracks, albums, musicVideos, releases } = state;
   const [activeTab, setActiveTab] = useState('create');
-  
+
   // Track creation states
   const [trackTitle, setTrackTitle] = useState('');
   const [selectedLyrics, setSelectedLyrics] = useState(null);
   const [selectedProducer, setSelectedProducer] = useState(null);
   const [selectedDirector, setSelectedDirector] = useState(null);
   const [selectedStudio, setSelectedStudio] = useState(null);
-  
+  const [releasing, setReleasing] = useState(false);
+
   // Album creation states
   const [albumTitle, setAlbumTitle] = useState('');
   const [selectedTracks, setSelectedTracks] = useState([]);
-  
+
   // Music video states
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [selectedVideoProducer, setSelectedVideoProducer] = useState(null);
@@ -106,9 +110,9 @@ export default function MusicStudioPage() {
 
   const albumNames = [
     'The Come Up', 'Street Dreams', 'Golden Hour', 'No Sleep', 'Legendary', 'From The Bottom',
-    'City Lights', 'The Journey', 'Rise & Grind', 'Victory Lap', 'Midnight Sessions',
-    'Crown Collection', 'Street Symphony', 'Diamond Life', 'Empire Rising', 'Pure Fire',
-    'Next Chapter', 'Boss Level', 'Money Talk', 'Street Royalty'
+    'City Lights', 'The Journey', 'Rise & Grind', 'Victory Lap', 'Midnight Sessions', 'Crown Collection',
+    'Street Symphony', 'Diamond Life', 'Empire Rising', 'Pure Fire', 'Next Chapter', 'Boss Level',
+    'Money Talk', 'Street Royalty'
   ];
 
   // Check for duplicate titles
@@ -128,7 +132,7 @@ export default function MusicStudioPage() {
       title = randomTitles[Math.floor(Math.random() * randomTitles.length)];
       attempts++;
     } while (isDuplicateTitle(title) && attempts < 50);
-    
+
     if (attempts >= 50) {
       // If still duplicate, add a number
       let counter = 1;
@@ -148,7 +152,7 @@ export default function MusicStudioPage() {
       title = albumNames[Math.floor(Math.random() * albumNames.length)];
       attempts++;
     } while (isDuplicateTitle(title, 'album') && attempts < 50);
-    
+
     if (attempts >= 50) {
       let counter = 1;
       let baseTitle = title;
@@ -169,7 +173,7 @@ export default function MusicStudioPage() {
 
   const createTrack = () => {
     if (!trackTitle || !selectedLyrics || !selectedProducer || !selectedDirector || !selectedStudio || player.energy < 20) return;
-    
+
     if (isDuplicateTitle(trackTitle)) {
       dispatch({
         type: 'ADD_NOTIFICATION',
@@ -185,7 +189,6 @@ export default function MusicStudioPage() {
     }
 
     const totalCost = selectedLyrics.price + selectedProducer.price + selectedDirector.price + selectedStudio.price;
-    
     if (player.netWorth < totalCost) return;
 
     const baseQuality = Math.floor((selectedLyrics.quality + selectedProducer.quality + selectedDirector.quality + selectedStudio.quality) / 4);
@@ -240,7 +243,7 @@ export default function MusicStudioPage() {
 
   const createAlbum = () => {
     if (!albumTitle || selectedTracks.length < 3 || player.energy < 40) return;
-    
+
     if (isDuplicateTitle(albumTitle, 'album')) {
       dispatch({
         type: 'ADD_NOTIFICATION',
@@ -301,7 +304,6 @@ export default function MusicStudioPage() {
     if (!selectedTrack || !selectedVideoProducer || !selectedVideoDirector || !selectedVideoStudio || player.energy < 30) return;
 
     const totalCost = selectedVideoProducer.price + selectedVideoDirector.price + selectedVideoStudio.price;
-    
     if (player.netWorth < totalCost) return;
 
     const track = tracks.find(t => t.id === selectedTrack);
@@ -358,37 +360,64 @@ export default function MusicStudioPage() {
     setSelectedVideoStudio(null);
   };
 
-  const releaseContent = (content) => {
-    const platform = content.type === 'video' ? 'RapTube' : 'Rapify';
+  // Enhanced release content with better error handling
+  const releaseContent = async (content) => {
+    try {
+      // Prevent multiple simultaneous releases
+      if (releasing) return;
+      setReleasing(true);
 
-    dispatch({
-      type: 'RELEASE_CONTENT',
-      payload: {
-        contentId: content.id,
-        type: content.type,
-        title: content.title,
-        quality: content.quality,
-        platform: platform
-      }
-    });
+      const platform = content.type === 'video' ? 'RapTube' : 'Rapify';
 
-    dispatch({
-      type: 'ADD_NOTIFICATION',
-      payload: {
-        id: Date.now(),
-        type: 'success',
-        title: `Released on ${platform}!`,
-        message: `"${content.title}" is now live on ${platform} and earning views!`,
-        timestamp: new Date().toISOString()
+      // Validate content before release
+      if (!content || !content.id || !content.title) {
+        throw new Error('Invalid content data');
       }
-    });
+
+      // Dispatch release action with error handling
+      dispatch({
+        type: 'RELEASE_CONTENT',
+        payload: {
+          contentId: content.id,
+          type: content.type,
+          title: content.title,
+          quality: content.quality,
+          platform: platform
+        }
+      });
+
+      // Success notification
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: Date.now(),
+          type: 'success',
+          title: `Released on ${platform}!`,
+          message: `"${content.title}" is now live on ${platform} and earning views!`,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Release error:', error);
+      // Error notification
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: Date.now(),
+          type: 'error',
+          title: 'Release Failed',
+          message: 'Failed to release content. Please try again.',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } finally {
+      setReleasing(false);
+    }
   };
 
   const announceRelease = (releaseId) => {
     dispatch({ type: 'ANNOUNCE_RELEASE', payload: { releaseId } });
-    
     const release = releases.find(r => r.id === releaseId);
-    
     dispatch({
       type: 'ADD_NOTIFICATION',
       payload: {
@@ -417,10 +446,10 @@ export default function MusicStudioPage() {
 
   // Get tracks available for albums (not released and not in album)
   const availableTracksForAlbum = tracks.filter(track => !track.released && !track.inAlbum);
-  
+
   // Get tracks available for music videos (not having a video already)
   const availableTracksForVideo = tracks.filter(track => !track.hasVideo);
-  
+
   const releasedContent = releases.filter(release => !release.announced);
 
   const formatPrice = (price) => {
@@ -434,8 +463,8 @@ export default function MusicStudioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ios-bg pb-24 pt-24">
-      <div className="px-6 space-y-6">
+    <div className="min-h-screen bg-ios-bg pb-24 pt-20">
+      <div className="px-4 space-y-4 max-w-lg mx-auto">
         {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Music Studio</h1>
@@ -443,7 +472,7 @@ export default function MusicStudioPage() {
         </div>
 
         {/* Studio Stats */}
-        <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+        <div className="bg-white p-4 rounded-2xl shadow-ios">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-xl font-bold text-ios-blue">{tracks.length}</div>
@@ -461,21 +490,20 @@ export default function MusicStudioPage() {
         </div>
 
         {/* Free Self-Production Notice */}
-        <div className="bg-gradient-to-r from-ios-green to-ios-teal p-4 rounded-ios-lg text-white shadow-ios-lg">
+        <div className="bg-gradient-to-r from-ios-green to-ios-teal p-4 rounded-2xl text-white shadow-ios-lg">
           <h3 className="font-bold text-base mb-2">💡 Self-Production Tip</h3>
           <p className="text-white/90 text-sm">
-            Choose yourself for all options (Lyrics, Producer, Director, Studio) to create content for FREE! 
-            Perfect for starting artists on a budget.
+            Choose yourself for all options (Lyrics, Producer, Director, Studio) to create content for FREE! Perfect for starting artists on a budget.
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-white rounded-ios-xl p-1 shadow-ios overflow-x-auto">
+        <div className="flex bg-white rounded-2xl p-1 shadow-ios overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-shrink-0 flex items-center justify-center space-x-2 py-3 px-4 rounded-ios-lg transition-all ${
+              className={`flex-shrink-0 flex items-center justify-center space-x-2 py-3 px-4 rounded-2xl transition-all ${
                 activeTab === tab.id
                   ? 'bg-ios-blue text-white shadow-ios'
                   : 'text-ios-gray hover:text-gray-900'
@@ -489,16 +517,12 @@ export default function MusicStudioPage() {
 
         {/* Create Track Tab */}
         {activeTab === 'create' && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div className="space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Energy Check */}
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-ios-orange/10 rounded-ios">
+                  <div className="p-2 bg-ios-orange/10 rounded-2xl">
                     <SafeIcon icon={FiZap} className="text-ios-orange" />
                   </div>
                   <span className="font-medium text-gray-900">Energy: {player.energy}/100</span>
@@ -508,7 +532,7 @@ export default function MusicStudioPage() {
             </div>
 
             {/* Track Title */}
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <label className="block text-sm font-semibold text-gray-900 mb-3">Track Title</label>
               <div className="space-y-3">
                 <input
@@ -516,9 +540,9 @@ export default function MusicStudioPage() {
                   value={trackTitle}
                   onChange={(e) => setTrackTitle(e.target.value)}
                   placeholder="Enter track title"
-                  className={`w-full p-3 border-none rounded-ios text-gray-900 placeholder-ios-gray focus:outline-none focus:ring-2 ${
-                    trackTitle && isDuplicateTitle(trackTitle) 
-                      ? 'bg-red-50 focus:ring-red-500 border-red-300' 
+                  className={`w-full p-3 border-none rounded-2xl text-gray-900 placeholder-ios-gray focus:outline-none focus:ring-2 ${
+                    trackTitle && isDuplicateTitle(trackTitle)
+                      ? 'bg-red-50 focus:ring-red-500 border-red-300'
                       : 'bg-ios-gray6 focus:ring-ios-blue'
                   }`}
                   maxLength={30}
@@ -528,7 +552,7 @@ export default function MusicStudioPage() {
                 )}
                 <button
                   onClick={generateRandomTitle}
-                  className="w-full p-3 bg-ios-gray5 rounded-ios hover:bg-ios-gray4 transition-colors flex items-center justify-center space-x-2"
+                  className="w-full p-3 bg-ios-gray5 rounded-2xl hover:bg-ios-gray4 transition-colors flex items-center justify-center space-x-2"
                 >
                   <SafeIcon icon={FiRefreshCw} className="text-ios-gray" />
                   <span className="font-medium text-ios-gray">Generate Random Title</span>
@@ -537,7 +561,7 @@ export default function MusicStudioPage() {
             </div>
 
             {/* Lyrics Selection */}
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <label className="block text-sm font-semibold text-gray-900 mb-3">Lyrics</label>
               <div className="space-y-2">
                 {lyricsOptions.map((lyrics) => {
@@ -547,7 +571,7 @@ export default function MusicStudioPage() {
                     <button
                       key={lyrics.id}
                       onClick={() => canAfford && setSelectedLyrics(lyrics)}
-                      className={`w-full p-3 rounded-ios text-left transition-all ${
+                      className={`w-full p-3 rounded-2xl text-left transition-all ${
                         isSelected
                           ? 'bg-ios-blue text-white'
                           : canAfford
@@ -580,7 +604,9 @@ export default function MusicStudioPage() {
                                 icon={FiStar}
                                 className={`text-xs ${
                                   i < lyrics.quality
-                                    ? isSelected ? 'text-white' : 'text-ios-orange'
+                                    ? isSelected
+                                      ? 'text-white'
+                                      : 'text-ios-orange'
                                     : 'text-ios-gray4'
                                 }`}
                               />
@@ -600,7 +626,7 @@ export default function MusicStudioPage() {
             </div>
 
             {/* Producer Selection */}
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <label className="block text-sm font-semibold text-gray-900 mb-3">Producer</label>
               <div className="space-y-2">
                 {producers.map((producer) => {
@@ -610,7 +636,7 @@ export default function MusicStudioPage() {
                     <button
                       key={producer.id}
                       onClick={() => canAfford && setSelectedProducer(producer)}
-                      className={`w-full p-3 rounded-ios text-left transition-all ${
+                      className={`w-full p-3 rounded-2xl text-left transition-all ${
                         isSelected
                           ? 'bg-ios-purple text-white'
                           : canAfford
@@ -630,7 +656,9 @@ export default function MusicStudioPage() {
                                 icon={FiStar}
                                 className={`text-xs ${
                                   i < producer.quality
-                                    ? isSelected ? 'text-white' : 'text-ios-orange'
+                                    ? isSelected
+                                      ? 'text-white'
+                                      : 'text-ios-orange'
                                     : 'text-ios-gray4'
                                 }`}
                               />
@@ -650,7 +678,7 @@ export default function MusicStudioPage() {
             </div>
 
             {/* Director Selection */}
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <label className="block text-sm font-semibold text-gray-900 mb-3">Direction</label>
               <div className="space-y-2">
                 {directors.map((director) => {
@@ -660,7 +688,7 @@ export default function MusicStudioPage() {
                     <button
                       key={director.id}
                       onClick={() => canAfford && setSelectedDirector(director)}
-                      className={`w-full p-3 rounded-ios text-left transition-all ${
+                      className={`w-full p-3 rounded-2xl text-left transition-all ${
                         isSelected
                           ? 'bg-ios-pink text-white'
                           : canAfford
@@ -680,7 +708,9 @@ export default function MusicStudioPage() {
                                 icon={FiStar}
                                 className={`text-xs ${
                                   i < director.quality
-                                    ? isSelected ? 'text-white' : 'text-ios-orange'
+                                    ? isSelected
+                                      ? 'text-white'
+                                      : 'text-ios-orange'
                                     : 'text-ios-gray4'
                                 }`}
                               />
@@ -700,7 +730,7 @@ export default function MusicStudioPage() {
             </div>
 
             {/* Studio Selection */}
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <label className="block text-sm font-semibold text-gray-900 mb-3">Studio</label>
               <div className="space-y-2">
                 {studios.map((studio) => {
@@ -710,7 +740,7 @@ export default function MusicStudioPage() {
                     <button
                       key={studio.id}
                       onClick={() => canAfford && setSelectedStudio(studio)}
-                      className={`w-full p-3 rounded-ios text-left transition-all ${
+                      className={`w-full p-3 rounded-2xl text-left transition-all ${
                         isSelected
                           ? 'bg-ios-teal text-white'
                           : canAfford
@@ -730,7 +760,9 @@ export default function MusicStudioPage() {
                                 icon={FiStar}
                                 className={`text-xs ${
                                   i < studio.quality
-                                    ? isSelected ? 'text-white' : 'text-ios-orange'
+                                    ? isSelected
+                                      ? 'text-white'
+                                      : 'text-ios-orange'
                                     : 'text-ios-gray4'
                                 }`}
                               />
@@ -751,7 +783,7 @@ export default function MusicStudioPage() {
 
             {/* Total Cost Display */}
             {(selectedLyrics || selectedProducer || selectedDirector || selectedStudio) && (
-              <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+              <div className="bg-white p-4 rounded-2xl shadow-ios">
                 <h3 className="font-bold text-gray-900 mb-2">Production Summary</h3>
                 <div className="space-y-2 text-sm">
                   {selectedLyrics && (
@@ -780,14 +812,20 @@ export default function MusicStudioPage() {
                   )}
                   <div className="border-t border-ios-gray5 pt-2 flex justify-between font-bold">
                     <span>Total Cost</span>
-                    <span className={`${
-                      (selectedLyrics?.price || 0) + (selectedProducer?.price || 0) + (selectedDirector?.price || 0) + (selectedStudio?.price || 0) === 0
-                        ? 'text-ios-green' : 'text-ios-blue'
-                    }`}>
+                    <span
+                      className={`${
+                        (selectedLyrics?.price || 0) +
+                        (selectedProducer?.price || 0) +
+                        (selectedDirector?.price || 0) +
+                        (selectedStudio?.price || 0) === 0
+                          ? 'text-ios-green'
+                          : 'text-ios-blue'
+                      }`}
+                    >
                       {formatPrice(
-                        (selectedLyrics?.price || 0) + 
-                        (selectedProducer?.price || 0) + 
-                        (selectedDirector?.price || 0) + 
+                        (selectedLyrics?.price || 0) +
+                        (selectedProducer?.price || 0) +
+                        (selectedDirector?.price || 0) +
                         (selectedStudio?.price || 0)
                       )}
                     </span>
@@ -800,7 +838,7 @@ export default function MusicStudioPage() {
             <button
               onClick={createTrack}
               disabled={!canCreateTrack()}
-              className={`w-full py-4 px-6 rounded-ios-lg font-bold transition-all ${
+              className={`w-full py-4 px-6 rounded-2xl font-bold transition-all ${
                 canCreateTrack()
                   ? 'bg-gradient-to-r from-ios-blue to-ios-purple text-white shadow-ios-lg hover:shadow-ios-xl active:scale-95'
                   : 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
@@ -816,15 +854,11 @@ export default function MusicStudioPage() {
 
         {/* Create Album Tab */}
         {activeTab === 'album' && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+          <motion.div className="space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-ios-purple/10 rounded-ios">
+                  <div className="p-2 bg-ios-purple/10 rounded-2xl">
                     <SafeIcon icon={FiDisc} className="text-ios-purple" />
                   </div>
                   <span className="font-medium text-gray-900">Energy: {player.energy}/100</span>
@@ -841,9 +875,9 @@ export default function MusicStudioPage() {
                       value={albumTitle}
                       onChange={(e) => setAlbumTitle(e.target.value)}
                       placeholder="Enter album title"
-                      className={`w-full p-3 border-none rounded-ios text-gray-900 placeholder-ios-gray focus:outline-none focus:ring-2 ${
-                        albumTitle && isDuplicateTitle(albumTitle, 'album') 
-                          ? 'bg-red-50 focus:ring-red-500 border-red-300' 
+                      className={`w-full p-3 border-none rounded-2xl text-gray-900 placeholder-ios-gray focus:outline-none focus:ring-2 ${
+                        albumTitle && isDuplicateTitle(albumTitle, 'album')
+                          ? 'bg-red-50 focus:ring-red-500 border-red-300'
                           : 'bg-ios-gray6 focus:ring-ios-blue'
                       }`}
                       maxLength={30}
@@ -853,7 +887,7 @@ export default function MusicStudioPage() {
                     )}
                     <button
                       onClick={generateRandomAlbumTitle}
-                      className="w-full p-3 bg-ios-gray5 rounded-ios hover:bg-ios-gray4 transition-colors flex items-center justify-center space-x-2"
+                      className="w-full p-3 bg-ios-gray5 rounded-2xl hover:bg-ios-gray4 transition-colors flex items-center justify-center space-x-2"
                     >
                       <SafeIcon icon={FiRefreshCw} className="text-ios-gray" />
                       <span className="font-medium text-ios-gray">Generate Random Title</span>
@@ -871,12 +905,12 @@ export default function MusicStudioPage() {
                         key={track.id}
                         onClick={() => {
                           if (selectedTracks.includes(track.id)) {
-                            setSelectedTracks(selectedTracks.filter(id => id !== track.id));
+                            setSelectedTracks(selectedTracks.filter((id) => id !== track.id));
                           } else if (selectedTracks.length < 15) {
                             setSelectedTracks([...selectedTracks, track.id]);
                           }
                         }}
-                        className={`w-full p-3 rounded-ios text-left transition-all ${
+                        className={`w-full p-3 rounded-2xl text-left transition-all ${
                           selectedTracks.includes(track.id)
                             ? 'bg-ios-blue text-white'
                             : 'bg-ios-gray6 hover:bg-ios-gray5'
@@ -894,7 +928,9 @@ export default function MusicStudioPage() {
                                 icon={FiStar}
                                 className={`text-xs ${
                                   i < track.quality
-                                    ? selectedTracks.includes(track.id) ? 'text-white' : 'text-ios-orange'
+                                    ? selectedTracks.includes(track.id)
+                                      ? 'text-white'
+                                      : 'text-ios-orange'
                                     : 'text-ios-gray4'
                                 }`}
                               />
@@ -915,7 +951,7 @@ export default function MusicStudioPage() {
               <button
                 onClick={createAlbum}
                 disabled={!canCreateAlbum()}
-                className={`w-full mt-4 py-4 px-6 rounded-ios-lg font-bold transition-all ${
+                className={`w-full mt-4 py-4 px-6 rounded-2xl font-bold transition-all ${
                   canCreateAlbum()
                     ? 'bg-gradient-to-r from-ios-purple to-ios-pink text-white shadow-ios-lg hover:shadow-ios-xl active:scale-95'
                     : 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
@@ -932,15 +968,11 @@ export default function MusicStudioPage() {
 
         {/* Create Music Video Tab */}
         {activeTab === 'video' && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+          <motion.div className="space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="bg-white p-4 rounded-2xl shadow-ios">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-ios-red/10 rounded-ios">
+                  <div className="p-2 bg-ios-red/10 rounded-2xl">
                     <SafeIcon icon={FiVideo} className="text-ios-red" />
                   </div>
                   <span className="font-medium text-gray-900">Energy: {player.energy}/100</span>
@@ -959,7 +991,7 @@ export default function MusicStudioPage() {
                       <button
                         key={track.id}
                         onClick={() => setSelectedTrack(track.id)}
-                        className={`w-full p-3 rounded-ios text-left transition-all ${
+                        className={`w-full p-3 rounded-2xl text-left transition-all ${
                           selectedTrack === track.id
                             ? 'bg-ios-red text-white'
                             : 'bg-ios-gray6 hover:bg-ios-gray5'
@@ -979,7 +1011,9 @@ export default function MusicStudioPage() {
                                 icon={FiStar}
                                 className={`text-xs ${
                                   i < track.quality
-                                    ? selectedTrack === track.id ? 'text-white' : 'text-ios-orange'
+                                    ? selectedTrack === track.id
+                                      ? 'text-white'
+                                      : 'text-ios-orange'
                                     : 'text-ios-gray4'
                                 }`}
                               />
@@ -1007,7 +1041,7 @@ export default function MusicStudioPage() {
                         <button
                           key={producer.id}
                           onClick={() => canAfford && setSelectedVideoProducer(producer)}
-                          className={`w-full p-3 rounded-ios text-left transition-all ${
+                          className={`w-full p-3 rounded-2xl text-left transition-all ${
                             isSelected
                               ? 'bg-ios-purple text-white'
                               : canAfford
@@ -1044,7 +1078,7 @@ export default function MusicStudioPage() {
                         <button
                           key={director.id}
                           onClick={() => canAfford && setSelectedVideoDirector(director)}
-                          className={`w-full p-3 rounded-ios text-left transition-all ${
+                          className={`w-full p-3 rounded-2xl text-left transition-all ${
                             isSelected
                               ? 'bg-ios-pink text-white'
                               : canAfford
@@ -1081,7 +1115,7 @@ export default function MusicStudioPage() {
                         <button
                           key={studio.id}
                           onClick={() => canAfford && setSelectedVideoStudio(studio)}
-                          className={`w-full p-3 rounded-ios text-left transition-all ${
+                          className={`w-full p-3 rounded-2xl text-left transition-all ${
                             isSelected
                               ? 'bg-ios-teal text-white'
                               : canAfford
@@ -1109,7 +1143,7 @@ export default function MusicStudioPage() {
 
                 {/* Video Production Summary */}
                 {(selectedVideoProducer || selectedVideoDirector || selectedVideoStudio) && (
-                  <div className="bg-ios-gray6 p-3 rounded-ios">
+                  <div className="bg-ios-gray6 p-3 rounded-2xl">
                     <h4 className="font-bold text-gray-900 mb-2">Video Production Summary</h4>
                     <div className="space-y-1 text-sm">
                       {selectedVideoProducer && (
@@ -1132,13 +1166,18 @@ export default function MusicStudioPage() {
                       )}
                       <div className="border-t border-ios-gray4 pt-1 flex justify-between font-bold">
                         <span>Total Cost</span>
-                        <span className={`${
-                          (selectedVideoProducer?.price || 0) + (selectedVideoDirector?.price || 0) + (selectedVideoStudio?.price || 0) === 0
-                            ? 'text-ios-green' : 'text-ios-blue'
-                        }`}>
+                        <span
+                          className={`${
+                            (selectedVideoProducer?.price || 0) +
+                            (selectedVideoDirector?.price || 0) +
+                            (selectedVideoStudio?.price || 0) === 0
+                              ? 'text-ios-green'
+                              : 'text-ios-blue'
+                          }`}
+                        >
                           {formatPrice(
-                            (selectedVideoProducer?.price || 0) + 
-                            (selectedVideoDirector?.price || 0) + 
+                            (selectedVideoProducer?.price || 0) +
+                            (selectedVideoDirector?.price || 0) +
                             (selectedVideoStudio?.price || 0)
                           )}
                         </span>
@@ -1151,7 +1190,7 @@ export default function MusicStudioPage() {
               <button
                 onClick={createMusicVideo}
                 disabled={!canCreateVideo()}
-                className={`w-full mt-4 py-4 px-6 rounded-ios-lg font-bold transition-all ${
+                className={`w-full mt-4 py-4 px-6 rounded-2xl font-bold transition-all ${
                   canCreateVideo()
                     ? 'bg-gradient-to-r from-ios-red to-ios-pink text-white shadow-ios-lg hover:shadow-ios-xl active:scale-95'
                     : 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
@@ -1168,18 +1207,14 @@ export default function MusicStudioPage() {
 
         {/* My Content Tab */}
         {activeTab === 'tracks' && (
-          <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div className="space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Released Content - Announcement Section */}
             {releasedContent.length > 0 && (
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-3">Ready for Social Media Announcement</h3>
                 <div className="space-y-3">
                   {releasedContent.map((release) => (
-                    <div key={release.id} className="bg-white p-4 rounded-ios-lg shadow-ios">
+                    <div key={release.id} className="bg-white p-4 rounded-2xl shadow-ios">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex-1">
                           <h4 className="font-bold text-gray-900">{release.title}</h4>
@@ -1195,7 +1230,7 @@ export default function MusicStudioPage() {
                       </div>
                       <button
                         onClick={() => announceRelease(release.id)}
-                        className="w-full bg-gradient-to-r from-ios-pink to-ios-purple text-white py-3 px-4 rounded-ios font-semibold hover:shadow-ios transition-all active:scale-95"
+                        className="w-full bg-gradient-to-r from-ios-pink to-ios-purple text-white py-3 px-4 rounded-2xl font-semibold hover:shadow-ios transition-all active:scale-95"
                       >
                         <div className="flex items-center justify-center space-x-2">
                           <SafeIcon icon={FiMegaphone} />
@@ -1214,7 +1249,7 @@ export default function MusicStudioPage() {
                 <h3 className="text-lg font-bold text-gray-900 mb-3">Tracks ({tracks.length})</h3>
                 <div className="space-y-3">
                   {tracks.map((track) => (
-                    <div key={track.id} className="bg-white p-4 rounded-ios-lg shadow-ios">
+                    <div key={track.id} className="bg-white p-4 rounded-2xl shadow-ios">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex-1">
                           <h4 className="font-bold text-gray-900">{track.title}</h4>
@@ -1225,13 +1260,19 @@ export default function MusicStudioPage() {
                           <p className="text-xs text-ios-gray2">Created: {track.createdAt}</p>
                           <div className="flex items-center space-x-2 mt-1">
                             {track.inAlbum && (
-                              <span className="text-xs bg-ios-purple/10 text-ios-purple px-2 py-1 rounded-full">In Album</span>
+                              <span className="text-xs bg-ios-purple/10 text-ios-purple px-2 py-1 rounded-full">
+                                In Album
+                              </span>
                             )}
                             {track.hasVideo && (
-                              <span className="text-xs bg-ios-red/10 text-ios-red px-2 py-1 rounded-full">Has Video</span>
+                              <span className="text-xs bg-ios-red/10 text-ios-red px-2 py-1 rounded-full">
+                                Has Video
+                              </span>
                             )}
                             {track.released && (
-                              <span className="text-xs bg-ios-green/10 text-ios-green px-2 py-1 rounded-full">Released</span>
+                              <span className="text-xs bg-ios-green/10 text-ios-green px-2 py-1 rounded-full">
+                                Released
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1251,19 +1292,22 @@ export default function MusicStudioPage() {
                       {!track.released && !track.inAlbum ? (
                         <button
                           onClick={() => releaseContent(track)}
-                          className="w-full bg-ios-blue text-white py-2 px-4 rounded-ios font-semibold hover:shadow-ios transition-all active:scale-95"
+                          disabled={releasing}
+                          className={`w-full py-2 px-4 rounded-2xl font-semibold transition-all ${
+                            releasing
+                              ? 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
+                              : 'bg-ios-blue text-white hover:shadow-ios active:scale-95'
+                          }`}
                         >
                           <SafeIcon icon={FiUpload} className="inline mr-2" />
-                          Release on Rapify
+                          {releasing ? 'Releasing...' : 'Release on Rapify'}
                         </button>
                       ) : track.inAlbum ? (
                         <div className="text-center py-2 text-ios-purple font-semibold">
                           📀 Part of Album (Cannot be released separately)
                         </div>
                       ) : (
-                        <div className="text-center py-2 text-ios-green font-semibold">
-                          ✓ Released on Rapify
-                        </div>
+                        <div className="text-center py-2 text-ios-green font-semibold">✓ Released on Rapify</div>
                       )}
                     </div>
                   ))}
@@ -1277,7 +1321,7 @@ export default function MusicStudioPage() {
                 <h3 className="text-lg font-bold text-gray-900 mb-3">Albums ({albums.length})</h3>
                 <div className="space-y-3">
                   {albums.map((album) => (
-                    <div key={album.id} className="bg-white p-4 rounded-ios-lg shadow-ios">
+                    <div key={album.id} className="bg-white p-4 rounded-2xl shadow-ios">
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <h4 className="font-bold text-gray-900">{album.title}</h4>
@@ -1300,15 +1344,18 @@ export default function MusicStudioPage() {
                       {!album.released ? (
                         <button
                           onClick={() => releaseContent(album)}
-                          className="w-full bg-ios-purple text-white py-2 px-4 rounded-ios font-semibold hover:shadow-ios transition-all active:scale-95"
+                          disabled={releasing}
+                          className={`w-full py-2 px-4 rounded-2xl font-semibold transition-all ${
+                            releasing
+                              ? 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
+                              : 'bg-ios-purple text-white hover:shadow-ios active:scale-95'
+                          }`}
                         >
                           <SafeIcon icon={FiUpload} className="inline mr-2" />
-                          Release on Rapify
+                          {releasing ? 'Releasing...' : 'Release on Rapify'}
                         </button>
                       ) : (
-                        <div className="text-center py-2 text-ios-green font-semibold">
-                          ✓ Released on Rapify
-                        </div>
+                        <div className="text-center py-2 text-ios-green font-semibold">✓ Released on Rapify</div>
                       )}
                     </div>
                   ))}
@@ -1322,7 +1369,7 @@ export default function MusicStudioPage() {
                 <h3 className="text-lg font-bold text-gray-900 mb-3">Music Videos ({musicVideos.length})</h3>
                 <div className="space-y-3">
                   {musicVideos.map((video) => (
-                    <div key={video.id} className="bg-white p-4 rounded-ios-lg shadow-ios">
+                    <div key={video.id} className="bg-white p-4 rounded-2xl shadow-ios">
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <h4 className="font-bold text-gray-900">{video.title}</h4>
@@ -1349,15 +1396,18 @@ export default function MusicStudioPage() {
                       {!video.released ? (
                         <button
                           onClick={() => releaseContent(video)}
-                          className="w-full bg-ios-red text-white py-2 px-4 rounded-ios font-semibold hover:shadow-ios transition-all active:scale-95"
+                          disabled={releasing}
+                          className={`w-full py-2 px-4 rounded-2xl font-semibold transition-all ${
+                            releasing
+                              ? 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
+                              : 'bg-ios-red text-white hover:shadow-ios active:scale-95'
+                          }`}
                         >
                           <SafeIcon icon={FiUpload} className="inline mr-2" />
-                          Release on RapTube
+                          {releasing ? 'Releasing...' : 'Release on RapTube'}
                         </button>
                       ) : (
-                        <div className="text-center py-2 text-ios-green font-semibold">
-                          ✓ Released on RapTube
-                        </div>
+                        <div className="text-center py-2 text-ios-green font-semibold">✓ Released on RapTube</div>
                       )}
                     </div>
                   ))}
@@ -1366,7 +1416,7 @@ export default function MusicStudioPage() {
             )}
 
             {tracks.length === 0 && albums.length === 0 && musicVideos.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-ios-lg shadow-ios">
+              <div className="text-center py-12 bg-white rounded-2xl shadow-ios">
                 <SafeIcon icon={FiMusic} className="text-4xl text-ios-gray mx-auto mb-4" />
                 <p className="text-ios-gray font-medium">No content created yet</p>
                 <p className="text-sm text-ios-gray2 mt-1">Start creating tracks to build your catalog!</p>

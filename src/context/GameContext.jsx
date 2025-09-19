@@ -1,4 +1,18 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { 
+  calculateFameGain, 
+  calculateReputationGain, 
+  calculateFanGrowth, 
+  calculateFollowerGrowth,
+  calculateStreams,
+  calculateAlbumSales,
+  getCurrentCareerLevel,
+  canLevelUp,
+  getNextCareerLevel,
+  calculateInactivityPenalty,
+  calculateContentQuality,
+  calculateViralPotential
+} from '../utils/careerSystem';
 
 const GameContext = createContext();
 
@@ -10,11 +24,16 @@ const initialState = {
     age: 20,
     year: 2020,
     week: 1,
+    month: 1,
     fame: 0,
     reputation: 0,
     fans: 0,
     netWorth: 100,
     energy: 100,
+    careerLevel: null,
+    lastReleaseWeek: 0,
+    totalReleases: 0,
+    consistencyScore: 1.0,
     skills: {
       lyrics: 1,
       flow: 1,
@@ -29,13 +48,15 @@ const initialState = {
       riktok: { followers: 0, videos: 0 }
     },
     achievements: [],
-    inventory: []
+    inventory: [],
+    equipment: [],
+    collaborators: []
   },
   tracks: [],
   albums: [],
   musicVideos: [],
-  collaborations: [],
   concerts: [],
+  collaborations: [],
   socialPosts: [],
   releases: [],
   earnings: {
@@ -44,22 +65,32 @@ const initialState = {
     streaming: 0,
     youtube: 0,
     concerts: 0,
-    merchandise: 0
+    merchandise: 0,
+    albumSales: 0
   },
   gameStarted: false,
   currentPage: 'home',
   notifications: [],
-  slot: null
+  slot: null,
+  careerStats: {
+    totalStreams: 0,
+    totalAlbumSales: 0,
+    chartPositions: [],
+    awards: [],
+    milestones: []
+  }
 };
 
 function gameReducer(state, action) {
   switch (action.type) {
     case 'CREATE_CHARACTER':
+      const initialLevel = getCurrentCareerLevel(0, 0);
       return {
         ...state,
-        player: {
-          ...state.player,
-          ...action.payload
+        player: { 
+          ...state.player, 
+          ...action.payload,
+          careerLevel: initialLevel
         },
         gameStarted: true
       };
@@ -71,19 +102,21 @@ function gameReducer(state, action) {
       };
 
     case 'RESET_GAME':
-      return {
-        ...initialState
-      };
+      return { ...initialState };
 
     case 'UPDATE_PLAYER':
+      const updatedPlayer = { ...state.player, ...action.payload };
+      
+      // Update career level based on new fame/reputation
+      if (action.payload.fame !== undefined || action.payload.reputation !== undefined) {
+        updatedPlayer.careerLevel = getCurrentCareerLevel(updatedPlayer.fame, updatedPlayer.reputation);
+      }
+      
       const newState = {
         ...state,
-        player: {
-          ...state.player,
-          ...action.payload
-        }
+        player: updatedPlayer
       };
-      // Auto-save when player data changes
+      
       if (newState.slot) {
         localStorage.setItem(`rapCareer_slot_${newState.slot}`, JSON.stringify(newState));
       }
@@ -107,51 +140,73 @@ function gameReducer(state, action) {
         musicVideos: [...state.musicVideos, action.payload]
       };
 
+    case 'ADD_CONCERT':
+      const concertFameGain = calculateFameGain('concert', action.payload.quality, state.player.careerLevel?.id);
+      const concertReputationGain = calculateReputationGain('consistent', action.payload.quality);
+      const concertFanGrowth = calculateFanGrowth(state.player.fame, state.player.reputation, 'concert');
+      const concertFollowerGrowth = calculateFollowerGrowth(state.player.fame, state.player.reputation, 'concert');
+
+      return {
+        ...state,
+        concerts: [...state.concerts, action.payload],
+        player: {
+          ...state.player,
+          fame: Math.min(100, state.player.fame + concertFameGain),
+          reputation: Math.min(100, state.player.reputation + concertReputationGain),
+          fans: state.player.fans + concertFanGrowth,
+          socialMedia: {
+            ...state.player.socialMedia,
+            rapgram: {
+              ...state.player.socialMedia.rapgram,
+              followers: state.player.socialMedia.rapgram.followers + Math.floor(concertFollowerGrowth * 0.3)
+            },
+            riktok: {
+              ...state.player.socialMedia.riktok,
+              followers: state.player.socialMedia.riktok.followers + Math.floor(concertFollowerGrowth * 0.4)
+            }
+          }
+        },
+        earnings: {
+          ...state.earnings,
+          concerts: state.earnings.concerts + action.payload.earnings,
+          total: state.earnings.total + action.payload.earnings,
+          thisWeek: state.earnings.thisWeek + action.payload.earnings
+        }
+      };
+
     case 'ADD_COLLABORATION':
       return {
         ...state,
         collaborations: [...state.collaborations, action.payload]
       };
 
-    case 'ADD_CONCERT':
-      return {
-        ...state,
-        concerts: [...state.concerts, action.payload],
-        earnings: {
-          ...state.earnings,
-          concerts: state.earnings.concerts + action.payload.earnings
-        }
-      };
-
     case 'MARK_TRACKS_IN_ALBUM':
       return {
         ...state,
-        tracks: state.tracks.map(track =>
-          action.payload.trackIds.includes(track.id)
-            ? { ...track, inAlbum: true }
-            : track
+        tracks: state.tracks.map((track) =>
+          action.payload.trackIds.includes(track.id) ? { ...track, inAlbum: true } : track
         )
       };
 
     case 'MARK_TRACK_HAS_VIDEO':
       return {
         ...state,
-        tracks: state.tracks.map(track =>
-          track.id === action.payload.trackId
-            ? { ...track, hasVideo: true }
-            : track
+        tracks: state.tracks.map((track) =>
+          track.id === action.payload.trackId ? { ...track, hasVideo: true } : track
         )
       };
 
     case 'ADD_SOCIAL_POST':
       const engagementBonus = Math.floor(action.payload.likes / 100);
+      const postFameGain = Math.floor(engagementBonus / 50);
+      
       return {
         ...state,
         socialPosts: [...state.socialPosts, action.payload],
         player: {
           ...state.player,
           fans: state.player.fans + engagementBonus,
-          fame: state.player.fame + Math.floor(engagementBonus / 10),
+          fame: Math.min(100, state.player.fame + postFameGain),
           socialMedia: {
             ...state.player.socialMedia,
             [action.payload.platform]: {
@@ -164,119 +219,168 @@ function gameReducer(state, action) {
       };
 
     case 'RELEASE_CONTENT':
-      // Enhanced release system with initial views based on quality and fame
       const { contentId, type, title, quality, platform } = action.payload;
       
-      // Calculate initial views boost based on player stats
-      const fameBoost = Math.floor(state.player.fame * 2);
-      const fanBoost = Math.floor(state.player.fans * 0.1);
-      const socialBoost = type === 'video' 
-        ? Math.floor(state.player.socialMedia.raptube.subscribers * 0.05)
-        : Math.floor(state.player.socialMedia.rapify.listeners * 0.03);
+      // Calculate career progression gains
+      const releaseType = type === 'album' ? 'album' : 'track';
+      const fameGain = calculateFameGain(releaseType, quality, state.player.careerLevel?.id);
+      const reputationGain = calculateReputationGain('highQuality', quality);
+      const fanGrowth = calculateFanGrowth(state.player.fame, state.player.reputation, releaseType);
+      const followerGrowth = calculateFollowerGrowth(state.player.fame, state.player.reputation, type === 'album' ? 'album' : 'single');
       
-      // Quality multiplier for initial views
-      const qualityMultiplier = Math.max(0.5, quality / 10);
+      // Calculate streams and sales
+      const expectedStreams = calculateStreams(state.player.fame + fameGain, state.player.reputation + reputationGain, state.player.fans + fanGrowth, quality);
+      const albumSales = type === 'album' ? calculateAlbumSales(expectedStreams) : 0;
       
-      // Base initial views - collaborations get bonus
-      const baseInitialViews = type === 'video' ? 500 : 
-                              type === 'album' ? 300 : 
-                              type === 'collaboration' ? 800 : 200;
+      // Viral potential
+      const viralData = calculateViralPotential(quality, 8, 7); // Assume decent timing and trends
+      const finalStreams = Math.floor(expectedStreams * viralData.multiplier);
       
-      // Calculate total initial views
-      const initialViews = Math.floor(
-        (baseInitialViews + fameBoost + fanBoost + socialBoost) * qualityMultiplier
-      );
+      // Earnings calculation
+      const viewValue = type === 'video' ? 0.08 : type === 'album' ? 0.25 : 0.15;
+      const initialEarnings = finalStreams * viewValue;
+      const albumSalesEarnings = albumSales * 2.5; // $2.50 per album
       
-      // Calculate initial earnings
-      const viewValue = type === 'video' ? 0.08 : 
-                       type === 'album' ? 0.20 : 
-                       type === 'collaboration' ? 0.25 : 0.15;
-      const initialEarnings = initialViews * viewValue;
-
       const newRelease = {
         ...action.payload,
         id: Date.now(),
-        releaseDate: `${state.player.week}/${state.player.year}`,
-        views: initialViews,
-        streams: type !== 'video' ? Math.floor(initialViews * 1.2) : 0,
-        earnings: initialEarnings,
+        releaseDate: `W${state.player.week}/${state.player.year}`,
+        views: finalStreams,
+        streams: type !== 'video' ? Math.floor(finalStreams * 1.2) : 0,
+        albumSales: albumSales,
+        earnings: initialEarnings + albumSalesEarnings,
         trending: false,
         peakPosition: null,
         announced: false,
         platforms: type === 'video' ? ['raptube'] : ['rapify'],
-        // Enhanced tracking
-        dailyViews: initialViews,
-        weeklyViews: initialViews,
-        monthlyViews: initialViews,
-        viewsHistory: [{ week: state.player.week, views: initialViews }],
-        peakWeeklyViews: initialViews,
-        chartPosition: null,
-        isViral: initialViews > 10000,
+        dailyViews: Math.floor(finalStreams / 7),
+        weeklyViews: finalStreams,
+        monthlyViews: finalStreams,
+        viewsHistory: [{ week: state.player.week, views: finalStreams }],
+        peakWeeklyViews: finalStreams,
+        chartPosition: viralData.isViral ? Math.floor(Math.random() * 20) + 1 : null,
+        isViral: viralData.isViral,
         releaseWeek: state.player.week,
-        ageMultiplier: 1.0
+        ageMultiplier: 1.0,
+        qualityRating: quality,
+        careerLevel: state.player.careerLevel?.title
       };
+
+      // Update consistency score
+      const releaseWeeksSinceLastRelease = state.player.week - state.player.lastReleaseWeek;
+      const newConsistencyScore = releaseWeeksSinceLastRelease <= 12 ? 
+        Math.min(1.0, state.player.consistencyScore + 0.1) : 
+        Math.max(0.3, state.player.consistencyScore - 0.2);
+
+      // Career level up check
+      const updatedFame = Math.min(100, state.player.fame + fameGain);
+      const updatedReputation = Math.min(100, state.player.reputation + reputationGain);
+      const currentLevel = getCurrentCareerLevel(updatedFame, updatedReputation);
+      const leveledUp = currentLevel.id > state.player.careerLevel?.id;
+
+      // Milestone notifications
+      const milestoneNotifications = [];
       
+      if (leveledUp) {
+        milestoneNotifications.push({
+          id: Date.now() + 1,
+          type: 'achievement',
+          title: `🎉 LEVEL UP! ${currentLevel.icon}`,
+          message: `You've reached ${currentLevel.title}! ${currentLevel.unlocks.join(', ')} now available!`,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      if (viralData.isViral) {
+        milestoneNotifications.push({
+          id: Date.now() + 2,
+          type: 'success',
+          title: 'VIRAL SUCCESS! 🔥',
+          message: `"${title}" has gone viral with ${formatNumber(finalStreams)} streams!`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       return {
         ...state,
         releases: [...state.releases, newRelease],
-        tracks: state.tracks.map(track => 
-          track.id === contentId 
-            ? { ...track, released: true, releaseId: newRelease.id }
-            : track
+        tracks: state.tracks.map((track) =>
+          track.id === contentId ? { ...track, released: true, releaseId: newRelease.id } : track
         ),
-        albums: state.albums.map(album => 
-          album.id === contentId 
-            ? { ...album, released: true, releaseId: newRelease.id }
-            : album
+        albums: state.albums.map((album) =>
+          album.id === contentId ? { ...album, released: true, releaseId: newRelease.id } : album
         ),
-        musicVideos: state.musicVideos.map(video => 
-          video.id === contentId 
-            ? { ...video, released: true, releaseId: newRelease.id }
-            : video
+        musicVideos: state.musicVideos.map((video) =>
+          video.id === contentId ? { ...video, released: true, releaseId: newRelease.id } : video
         ),
-        collaborations: state.collaborations.map(collab => 
-          collab.id === contentId 
-            ? { ...collab, released: true, releaseId: newRelease.id }
-            : collab
+        collaborations: state.collaborations.map((collab) =>
+          collab.id === contentId ? { ...collab, released: true, releaseId: newRelease.id } : collab
         ),
         player: {
           ...state.player,
-          netWorth: state.player.netWorth + initialEarnings,
-          fame: state.player.fame + Math.floor(initialViews / 500),
+          netWorth: state.player.netWorth + initialEarnings + albumSalesEarnings,
+          fame: updatedFame,
+          reputation: updatedReputation,
+          fans: state.player.fans + fanGrowth,
+          careerLevel: currentLevel,
+          lastReleaseWeek: state.player.week,
+          totalReleases: state.player.totalReleases + 1,
+          consistencyScore: newConsistencyScore,
           socialMedia: {
             ...state.player.socialMedia,
             [type === 'video' ? 'raptube' : 'rapify']: {
               ...state.player.socialMedia[type === 'video' ? 'raptube' : 'rapify'],
-              [type === 'video' ? 'totalViews' : 'streams']: 
-                state.player.socialMedia[type === 'video' ? 'raptube' : 'rapify'][type === 'video' ? 'totalViews' : 'streams'] + initialViews
+              [type === 'video' ? 'totalViews' : 'streams']:
+                state.player.socialMedia[type === 'video' ? 'raptube' : 'rapify'][
+                  type === 'video' ? 'totalViews' : 'streams'
+                ] + finalStreams,
+              followers: state.player.socialMedia[type === 'video' ? 'raptube' : 'rapify'].followers + Math.floor(followerGrowth * 0.6)
             }
           }
         },
         earnings: {
           ...state.earnings,
-          total: state.earnings.total + initialEarnings,
-          thisWeek: state.earnings.thisWeek + initialEarnings,
-          [type === 'video' ? 'youtube' : 'streaming']: 
+          total: state.earnings.total + initialEarnings + albumSalesEarnings,
+          thisWeek: state.earnings.thisWeek + initialEarnings + albumSalesEarnings,
+          streaming: state.earnings.streaming + initialEarnings,
+          albumSales: state.earnings.albumSales + albumSalesEarnings,
+          [type === 'video' ? 'youtube' : 'streaming']:
             state.earnings[type === 'video' ? 'youtube' : 'streaming'] + initialEarnings
-        }
+        },
+        careerStats: {
+          ...state.careerStats,
+          totalStreams: state.careerStats.totalStreams + finalStreams,
+          totalAlbumSales: state.careerStats.totalAlbumSales + albumSales
+        },
+        notifications: [
+          ...milestoneNotifications,
+          ...state.notifications.slice(0, 8)
+        ]
       };
 
     case 'ANNOUNCE_RELEASE':
       const { releaseId } = action.payload;
-      
-      const baseReach = Math.floor(state.player.fans * 0.4 + state.player.socialMedia.rapgram.followers * 0.3);
+      const baseReach = Math.floor(
+        state.player.fans * 0.4 + state.player.socialMedia.rapgram.followers * 0.3
+      );
       const announcementViews = Math.floor(baseReach * (0.5 + Math.random() * 0.8));
       const announcementEarnings = announcementViews * 0.12;
-      
-      const release = state.releases.find(r => r.id === releaseId);
+
+      const release = state.releases.find((r) => r.id === releaseId);
+      const announcementFollowerGrowth = calculateFollowerGrowth(state.player.fame, state.player.reputation, 'single');
+
       const announcementPost = {
         id: Date.now(),
         platform: 'rapgram',
-        content: `🔥 NEW RELEASE ALERT! 🔥\n\n"${release.title}" is now live on ${release.type === 'video' ? 'RapTube' : 'Rapify'}! Go check it out and let me know what you think! 🎵\n\n#NewMusic #${release.type === 'video' ? 'MusicVideo' : 'NewTrack'} #RapLife`,
+        content: `🔥 NEW RELEASE ALERT! 🔥\n\n"${release.title}" is now live on ${
+          release.type === 'video' ? 'RapTube' : 'Rapify'
+        }! Go check it out and let me know what you think! 🎵\n\n#NewMusic #${
+          release.type === 'video' ? 'MusicVideo' : 'NewTrack'
+        } #MusicLife`,
         likes: Math.floor(announcementViews * 0.15),
         comments: Math.floor(announcementViews * 0.05),
         shares: Math.floor(announcementViews * 0.03),
-        createdAt: `${state.player.week}/${state.player.year}`,
+        createdAt: `W${state.player.week}/${state.player.year}`,
         contentId: release.id,
         isViral: announcementViews > 10000,
         isAnnouncement: true
@@ -287,10 +391,10 @@ function gameReducer(state, action) {
         id: Date.now() + 1,
         platform: 'riktok'
       };
-      
+
       return {
         ...state,
-        releases: state.releases.map(rel =>
+        releases: state.releases.map((rel) =>
           rel.id === releaseId
             ? {
                 ...rel,
@@ -308,18 +412,18 @@ function gameReducer(state, action) {
           ...state.player,
           netWorth: state.player.netWorth + announcementEarnings,
           fans: state.player.fans + Math.floor(announcementViews / 150),
-          fame: state.player.fame + Math.floor(announcementViews / 800),
+          fame: Math.min(100, state.player.fame + Math.floor(announcementViews / 800)),
           socialMedia: {
             ...state.player.socialMedia,
             rapgram: {
               ...state.player.socialMedia.rapgram,
               posts: state.player.socialMedia.rapgram.posts + 1,
-              followers: state.player.socialMedia.rapgram.followers + Math.floor(announcementViews / 200)
+              followers: state.player.socialMedia.rapgram.followers + Math.floor(announcementFollowerGrowth * 0.2)
             },
             riktok: {
               ...state.player.socialMedia.riktok,
               posts: (state.player.socialMedia.riktok.posts || 0) + 1,
-              followers: state.player.socialMedia.riktok.followers + Math.floor(announcementViews / 200)
+              followers: state.player.socialMedia.riktok.followers + Math.floor(announcementFollowerGrowth * 0.3)
             }
           }
         },
@@ -327,47 +431,6 @@ function gameReducer(state, action) {
           ...state.earnings,
           total: state.earnings.total + announcementEarnings,
           thisWeek: state.earnings.thisWeek + announcementEarnings
-        }
-      };
-
-    case 'UPDATE_RELEASE_STATS':
-      const updatedReleases = state.releases.map(release => {
-        if (release.id === action.payload.releaseId) {
-          const newViews = release.views + (action.payload.views || 0);
-          const newEarnings = release.earnings + (action.payload.earnings || 0);
-          
-          return {
-            ...release,
-            views: newViews,
-            streams: release.streams + (action.payload.streams || 0),
-            earnings: newEarnings,
-            trending: newViews > 50000 && newViews < 100000,
-            peakPosition: newViews > 100000 ? Math.max(1, Math.floor(Math.random() * 10)) : release.peakPosition
-          };
-        }
-        return release;
-      });
-
-      return {
-        ...state,
-        releases: updatedReleases,
-        earnings: {
-          ...state.earnings,
-          total: state.earnings.total + (action.payload.earnings || 0),
-          thisWeek: state.earnings.thisWeek + (action.payload.earnings || 0),
-          streaming: action.payload.type === 'streaming' 
-            ? state.earnings.streaming + (action.payload.earnings || 0)
-            : state.earnings.streaming,
-          youtube: action.payload.type === 'youtube' 
-            ? state.earnings.youtube + (action.payload.earnings || 0)
-            : state.earnings.youtube
-        },
-        player: {
-          ...state.player,
-          netWorth: state.player.netWorth + (action.payload.earnings || 0),
-          fans: state.player.fans + Math.floor((action.payload.views || 0) / 100),
-          fame: state.player.fame + Math.floor((action.payload.views || 0) / 1000),
-          reputation: state.player.reputation + Math.floor((action.payload.views || 0) / 2000)
         }
       };
 
@@ -380,7 +443,29 @@ function gameReducer(state, action) {
     case 'ADD_NOTIFICATION':
       return {
         ...state,
-        notifications: [action.payload, ...state.notifications.slice(0, 9)]
+        notifications: [{ ...action.payload, shown: false, read: false }, ...state.notifications.slice(0, 19)]
+      };
+
+    case 'MARK_NOTIFICATION_SHOWN':
+      return {
+        ...state,
+        notifications: state.notifications.map(notification =>
+          notification.id === action.payload.id
+            ? { ...notification, shown: true }
+            : notification
+        )
+      };
+
+    case 'CLEAR_NOTIFICATION':
+      return {
+        ...state,
+        notifications: state.notifications.filter(n => n.id !== action.payload.id)
+      };
+
+    case 'CLEAR_ALL_NOTIFICATIONS':
+      return {
+        ...state,
+        notifications: []
       };
 
     case 'ADVANCE_WEEK':
@@ -388,77 +473,81 @@ function gameReducer(state, action) {
       const newYear = newWeek > 52 ? state.player.year + 1 : state.player.year;
       const resetWeek = newWeek > 52 ? 1 : newWeek;
       const newAge = newYear - 2020 + 20;
+      const newMonth = Math.ceil(resetWeek / 4.33);
 
-      // Enhanced fan-based social media growth
-      const fanGrowthMultiplier = Math.max(1, state.player.fans / 1000);
-      const viewsMultiplier = state.releases.reduce((sum, release) => sum + release.views, 0) / 10000;
+      // Check for inactivity penalty - renamed variable to avoid conflict
+      const advanceWeeksSinceLastRelease = state.player.week - (state.player.lastReleaseWeek || 0);
+      const inactivityPenalty = calculateInactivityPenalty(advanceWeeksSinceLastRelease);
 
-      // Enhanced views system with realistic decay and viral potential
+      // Enhanced fan-based social media growth using career system
+      const currentLevel = getCurrentCareerLevel(state.player.fame, state.player.reputation);
+      const fanGrowthRate = currentLevel ? Math.max(1, state.player.fans / 1000) : 1;
+      
       let weeklyEarnings = 0;
       let weeklyViews = 0;
-      const updatedReleasesWeek = state.releases.map(release => {
+      let weeklyStreams = 0;
+
+      const updatedReleasesWeek = state.releases.map((release) => {
         if (release.views === 0) return release;
-        
-        // Age factor - content gets less views over time
+
+        // Enhanced aging and viral mechanics
         const weeksOld = state.player.week - (release.releaseWeek || 0);
-        const ageDecay = Math.max(0.1, 1 - (weeksOld * 0.05)); // 5% decay per week
+        const ageDecay = Math.max(0.1, 1 - weeksOld * 0.03); // Slower decay for quality content
+
+        // Base views with career level influence
+        const baseViews = Math.floor(Math.random() * 3000) + 1000;
+        const qualityMultiplier = Math.max(0.4, release.qualityRating / 10);
+        const careerMultiplier = currentLevel ? 1 + (currentLevel.id * 0.15) : 1;
+        const consistencyMultiplier = state.player.consistencyScore;
         
-        // Base views calculation with multiple factors
-        const baseViews = Math.floor(Math.random() * 2000) + 500;
-        const qualityMultiplier = Math.max(0.3, release.quality / 10);
-        const fameMultiplier = Math.max(0.2, state.player.fame / 200);
-        const fanMultiplier = Math.max(0.1, state.player.fans / 3000);
+        // Fan engagement based on career level
+        const fanEngagement = Math.min(1, state.player.fans / (currentLevel?.fanGrowthRange[1] || 1000));
         
-        // Viral potential based on current performance
-        const viralChance = release.peakWeeklyViews > 50000 ? 0.15 : 0.05;
+        // Viral sustainability
+        const viralChance = release.peakWeeklyViews > 100000 ? 0.2 : 0.08;
         const isViralWeek = Math.random() < viralChance;
-        const viralMultiplier = isViralWeek ? (2 + Math.random() * 3) : 1;
-        
-        // Platform-specific multipliers (collaborations get bonus)
-        const platformMultiplier = release.type === 'video' ? 1.2 : 
-                                 release.type === 'album' ? 1.5 : 
-                                 release.type === 'collaboration' ? 1.8 : 1.0;
-        
-        // Calculate final weekly views
+        const viralMultiplier = isViralWeek ? 1.5 + Math.random() * 2 : 1;
+
         const weeklyViewGain = Math.floor(
           baseViews * 
           qualityMultiplier * 
-          fameMultiplier * 
-          fanMultiplier * 
+          careerMultiplier * 
+          consistencyMultiplier * 
+          fanEngagement * 
           ageDecay * 
-          viralMultiplier * 
-          platformMultiplier
+          viralMultiplier
         );
-        
-        // Earnings calculation with platform-specific rates
-        const viewValue = release.type === 'video' ? 0.08 : 
-                         release.type === 'album' ? 0.20 : 
-                         release.type === 'collaboration' ? 0.25 : 0.15;
-        const earnings = weeklyViewGain * viewValue;
-        
+
+        // Enhanced earnings with career progression
+        const viewValue = release.type === 'video' ? 0.08 : release.type === 'album' ? 0.25 : 0.18;
+        const careerBonus = currentLevel ? currentLevel.id * 0.02 : 0; // Higher level = better deals
+        const earnings = weeklyViewGain * (viewValue + careerBonus);
+
         weeklyEarnings += earnings;
         weeklyViews += weeklyViewGain;
-        
-        // Update view statistics
+        weeklyStreams += Math.floor(weeklyViewGain * 1.1);
+
         const newTotalViews = release.views + weeklyViewGain;
         const newWeeklyViews = weeklyViewGain;
         const newPeakWeekly = Math.max(release.peakWeeklyViews, newWeeklyViews);
-        
-        // Chart position calculation
+
+        // Enhanced chart mechanics based on career level
         let chartPosition = release.chartPosition;
-        if (newTotalViews > 1000000 && !chartPosition) {
+        if (newTotalViews > 5000000 && currentLevel?.id >= 6 && !chartPosition) {
+          chartPosition = Math.floor(Math.random() * 10) + 1; // Top 10
+        } else if (newTotalViews > 2000000 && currentLevel?.id >= 4 && !chartPosition) {
           chartPosition = Math.floor(Math.random() * 20) + 1; // Top 20
-        } else if (newTotalViews > 500000 && (!chartPosition || chartPosition > 50)) {
+        } else if (newTotalViews > 500000 && currentLevel?.id >= 3 && !chartPosition) {
           chartPosition = Math.floor(Math.random() * 50) + 1; // Top 50
         }
-        
-        // Trending status
-        const trending = newWeeklyViews > 25000 && newWeeklyViews < 100000;
-        const isViral = newTotalViews > 1000000 || newWeeklyViews > 100000;
-        
+
+        const trending = newWeeklyViews > 50000 && newWeeklyViews < 200000;
+        const isViral = newTotalViews > 2000000 || newWeeklyViews > 200000;
+
         return {
           ...release,
           views: newTotalViews,
+          streams: release.streams + Math.floor(weeklyViewGain * 1.1),
           earnings: release.earnings + earnings,
           weeklyViews: newWeeklyViews,
           peakWeeklyViews: newPeakWeekly,
@@ -466,72 +555,114 @@ function gameReducer(state, action) {
           monthlyViews: release.monthlyViews ? release.monthlyViews + newWeeklyViews : newWeeklyViews,
           viewsHistory: [
             ...(release.viewsHistory || []),
-            { week: state.player.week, views: newWeeklyViews, total: newTotalViews }
-          ].slice(-12), // Keep last 12 weeks
+            {
+              week: state.player.week,
+              views: newWeeklyViews,
+              total: newTotalViews,
+              earnings: earnings
+            }
+          ].slice(-24), // Keep 6 months of history
           trending: trending,
           isViral: isViral,
           chartPosition: chartPosition,
           ageMultiplier: ageDecay,
-          releaseWeek: release.releaseWeek || state.player.week,
-          // Performance metrics
-          avgWeeklyViews: release.viewsHistory ? 
-            release.viewsHistory.reduce((sum, h) => sum + h.views, 0) / release.viewsHistory.length : 
-            newWeeklyViews,
-          growthRate: release.weeklyViews ? 
-            ((newWeeklyViews - release.weeklyViews) / release.weeklyViews * 100) : 0
+          avgWeeklyViews: release.viewsHistory
+            ? release.viewsHistory.reduce((sum, h) => sum + h.views, 0) / release.viewsHistory.length
+            : newWeeklyViews,
+          growthRate: release.weeklyViews
+            ? ((newWeeklyViews - release.weeklyViews) / release.weeklyViews) * 100
+            : 0
         };
       });
 
-      // Enhanced social media growth based on fans and content performance
+      // Career-based social media growth
       const totalReleaseViews = updatedReleasesWeek.reduce((sum, release) => sum + (release.weeklyViews || 0), 0);
       
-      const newSocialMedia = {
-        ...state.player.socialMedia,
-        rapgram: {
-          ...state.player.socialMedia.rapgram,
-          followers: Math.floor(state.player.socialMedia.rapgram.followers + 
-            (state.player.fans * 0.6) + (fanGrowthMultiplier * 50) + (totalReleaseViews * 0.01))
-        },
-        raptube: {
-          ...state.player.socialMedia.raptube,
-          subscribers: Math.floor(state.player.socialMedia.raptube.subscribers + 
-            (state.player.fans * 0.4) + (viewsMultiplier * 20)),
-          totalViews: state.player.socialMedia.raptube.totalViews + weeklyViews,
-          videos: state.musicVideos.filter(v => v.released).length
-        },
-        rapify: {
-          ...state.player.socialMedia.rapify,
-          listeners: Math.floor(state.player.socialMedia.rapify.listeners + 
-            (state.player.fans * 0.8) + (fanGrowthMultiplier * 100)),
-          streams: state.player.socialMedia.rapify.streams + Math.floor(weeklyViews * 1.2)
-        },
-        riktok: {
-          ...state.player.socialMedia.riktok,
-          followers: Math.floor(state.player.socialMedia.riktok.followers + 
-            (state.player.fans * 0.7) + (fanGrowthMultiplier * 80))
-        }
-      };
+      let fameChange = 0;
+      let reputationChange = 0;
+      let fanChange = 0;
+      let socialMediaChange = {};
 
-      // Check for milestones and achievements
+      if (inactivityPenalty) {
+        fameChange = inactivityPenalty.fame;
+        reputationChange = inactivityPenalty.reputation;
+        fanChange = Math.floor(state.player.fans * inactivityPenalty.fans);
+        
+        // Apply penalties to social media
+        Object.keys(state.player.socialMedia).forEach(platform => {
+          const currentFollowers = state.player.socialMedia[platform].followers;
+          socialMediaChange[platform] = {
+            ...state.player.socialMedia[platform],
+            followers: Math.max(0, Math.floor(currentFollowers * (1 + inactivityPenalty.followers)))
+          };
+        });
+      } else {
+        // Normal growth based on career level
+        const levelMultiplier = currentLevel ? 1 + (currentLevel.id * 0.2) : 1;
+        const baseFollowerGrowth = calculateFollowerGrowth(state.player.fame, state.player.reputation);
+        
+        socialMediaChange = {
+          rapgram: {
+            ...state.player.socialMedia.rapgram,
+            followers: Math.floor(
+              state.player.socialMedia.rapgram.followers + 
+              (baseFollowerGrowth * 0.3 * levelMultiplier) +
+              (totalReleaseViews * 0.02)
+            )
+          },
+          raptube: {
+            ...state.player.socialMedia.raptube,
+            subscribers: Math.floor(
+              state.player.socialMedia.raptube.subscribers + 
+              (baseFollowerGrowth * 0.25 * levelMultiplier)
+            ),
+            totalViews: state.player.socialMedia.raptube.totalViews + weeklyViews,
+            videos: state.musicVideos.filter((v) => v.released).length
+          },
+          rapify: {
+            ...state.player.socialMedia.rapify,
+            listeners: Math.floor(
+              state.player.socialMedia.rapify.listeners + 
+              (baseFollowerGrowth * 0.4 * levelMultiplier)
+            ),
+            streams: state.player.socialMedia.rapify.streams + weeklyStreams
+          },
+          riktok: {
+            ...state.player.socialMedia.riktok,
+            followers: Math.floor(
+              state.player.socialMedia.riktok.followers + 
+              (baseFollowerGrowth * 0.35 * levelMultiplier)
+            )
+          }
+        };
+
+        // Natural fan growth based on career success
+        const naturalFanGrowth = calculateFanGrowth(state.player.fame, state.player.reputation);
+        fanChange = Math.floor(naturalFanGrowth * 0.1 * levelMultiplier);
+      }
+
+      // Milestone notifications
       const milestoneNotifications = [];
-      const viralReleases = updatedReleasesWeek.filter(r => r.isViral && !r.viralNotified);
-      const chartHits = updatedReleasesWeek.filter(r => r.chartPosition && r.chartPosition <= 10 && !r.chartNotified);
-      
+      const viralReleases = updatedReleasesWeek.filter((r) => r.isViral && !r.viralNotified);
+      const chartHits = updatedReleasesWeek.filter(
+        (r) => r.chartPosition && r.chartPosition <= 10 && !r.chartNotified
+      );
+
       if (viralReleases.length > 0) {
-        viralReleases.forEach(release => {
+        viralReleases.forEach((release) => {
           milestoneNotifications.push({
             id: Date.now() + Math.random(),
             type: 'success',
             title: 'VIRAL HIT! 🔥',
-            message: `"${release.title}" has gone viral with ${release.views.toLocaleString()} views!`,
+            message: `"${release.title}" has gone viral with ${formatNumber(release.views)} total streams!`,
             timestamp: new Date().toISOString()
           });
           release.viralNotified = true;
         });
       }
-      
+
       if (chartHits.length > 0) {
-        chartHits.forEach(release => {
+        chartHits.forEach((release) => {
           milestoneNotifications.push({
             id: Date.now() + Math.random(),
             type: 'success',
@@ -543,41 +674,80 @@ function gameReducer(state, action) {
         });
       }
 
+      if (inactivityPenalty) {
+        milestoneNotifications.push({
+          id: Date.now() + Math.random(),
+          type: 'error',
+          title: 'Inactivity Penalty! ⚠️',
+          message: `No releases for ${advanceWeeksSinceLastRelease} weeks! Your career is stalling. Release new content soon!`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Check for career level progression
+      const updatedFame = Math.max(0, Math.min(100, state.player.fame + fameChange));
+      const updatedReputation = Math.max(0, Math.min(100, state.player.reputation + reputationChange));
+      const newCareerLevel = getCurrentCareerLevel(updatedFame, updatedReputation);
+      
+      if (newCareerLevel.id !== currentLevel?.id) {
+        milestoneNotifications.push({
+          id: Date.now() + Math.random(),
+          type: newCareerLevel.id > currentLevel?.id ? 'achievement' : 'error',
+          title: newCareerLevel.id > currentLevel?.id ? 
+            `🎉 CAREER MILESTONE! ${newCareerLevel.icon}` : 
+            `📉 Career Decline`,
+          message: newCareerLevel.id > currentLevel?.id ?
+            `Welcome to ${newCareerLevel.title}! ${newCareerLevel.unlocks.join(', ')} unlocked!` :
+            `Your career level dropped to ${newCareerLevel.title}. Focus on quality and consistency!`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       const newStateWeek = {
         ...state,
         player: {
           ...state.player,
           week: resetWeek,
           year: newYear,
+          month: newMonth,
           age: newAge,
           energy: 100,
           netWorth: Math.max(0, state.player.netWorth + weeklyEarnings),
-          socialMedia: newSocialMedia
+          fame: updatedFame,
+          reputation: updatedReputation,
+          fans: Math.max(0, state.player.fans + fanChange),
+          careerLevel: newCareerLevel,
+          socialMedia: socialMediaChange
         },
         releases: updatedReleasesWeek,
         earnings: {
           ...state.earnings,
           total: state.earnings.total + weeklyEarnings,
           thisWeek: weeklyEarnings,
-          streaming: state.earnings.streaming + weeklyEarnings * 0.6,
-          youtube: state.earnings.youtube + weeklyEarnings * 0.4
+          streaming: state.earnings.streaming + weeklyEarnings * 0.7,
+          youtube: state.earnings.youtube + weeklyEarnings * 0.3
+        },
+        careerStats: {
+          ...state.careerStats,
+          totalStreams: state.careerStats.totalStreams + weeklyStreams
         },
         notifications: [
-          ...(weeklyEarnings > 100 ? [{
-            id: Date.now(),
-            type: 'earnings',
-            title: 'Weekly Earnings',
-            message: `You earned $${Math.floor(weeklyEarnings)} this week from ${weeklyViews.toLocaleString()} views!`,
-            timestamp: new Date().toISOString()
-          }] : []),
-          ...milestoneNotifications,
-          ...(fanGrowthMultiplier > 2 ? [{
-            id: Date.now() + 2,
-            type: 'success',
-            title: 'Social Media Boom!',
-            message: `Your ${state.player.fans.toLocaleString()} fans are driving massive social media growth!`,
-            timestamp: new Date().toISOString()
-          }] : []),
+          ...(weeklyEarnings > 100
+            ? [
+                {
+                  id: Date.now(),
+                  type: 'earnings',
+                  title: 'Weekly Earnings',
+                  message: `You earned $${Math.floor(
+                    weeklyEarnings
+                  )} this week from ${formatNumber(weeklyViews)} views!`,
+                  timestamp: new Date().toISOString(),
+                  shown: false,
+                  read: false
+                }
+              ]
+            : []),
+          ...milestoneNotifications.map(notif => ({ ...notif, shown: false, read: false })),
           ...state.notifications.slice(0, 6)
         ]
       };
@@ -594,14 +764,13 @@ function gameReducer(state, action) {
         player: {
           ...state.player,
           netWorth: state.player.netWorth - action.payload.price,
-          fame: state.player.fame + action.payload.fame,
-          reputation: state.player.reputation + action.payload.reputation,
+          fame: Math.min(100, state.player.fame + action.payload.fame),
+          reputation: Math.min(100, state.player.reputation + action.payload.reputation),
           inventory: [...state.player.inventory, action.payload]
         }
       };
 
     case 'UPGRADE_SKILL':
-      // Calculate escalating energy cost
       const getUpgradeCost = (currentLevel) => {
         if (currentLevel < 25) return 2;
         if (currentLevel < 50) return 4;
@@ -614,6 +783,7 @@ function gameReducer(state, action) {
       };
 
       const cost = getUpgradeCost(state.player.skills[action.payload.skill]);
+
       return {
         ...state,
         player: {
@@ -631,6 +801,20 @@ function gameReducer(state, action) {
   }
 }
 
+// Helper function for number formatting
+const formatNumber = (num) => {
+  if (num >= 1000000000000) {
+    return `${(num / 1000000000000).toFixed(1)}T`;
+  } else if (num >= 1000000000) {
+    return `${(num / 1000000000).toFixed(1)}B`;
+  } else if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
+
 export function GameProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
@@ -638,18 +822,17 @@ export function GameProvider({ children }) {
     if (!state.gameStarted || !state.slot) return;
 
     const interval = setInterval(() => {
-      const currentState = { ...state, lastPlayed: new Date().toISOString() };
+      const currentState = {
+        ...state,
+        lastPlayed: new Date().toISOString()
+      };
       localStorage.setItem(`rapCareer_slot_${state.slot}`, JSON.stringify(currentState));
     }, 30000);
 
     return () => clearInterval(interval);
   }, [state]);
 
-  return (
-    <GameContext.Provider value={{ state, dispatch }}>
-      {children}
-    </GameContext.Provider>
-  );
+  return <GameContext.Provider value={{ state, dispatch }}>{children}</GameContext.Provider>;
 }
 
 export function useGame() {

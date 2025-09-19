@@ -21,27 +21,30 @@ export default function CharacterCreation() {
   // Get slot from navigation state (for new careers from save page)
   const targetSlot = location.state?.slot;
 
+  // Enhanced avatars with rapper/musician vibe
   const avatars = [
-    { id: 1, name: 'Street Style', emoji: '🎤' },
-    { id: 2, name: 'Classic Rapper', emoji: '👨‍🎤' },
-    { id: 3, name: 'Modern Artist', emoji: '🕺' },
-    { id: 4, name: 'Underground', emoji: '🎭' },
-    { id: 5, name: 'Luxury Rap', emoji: '💎' },
-    { id: 6, name: 'Female MC', emoji: '👩‍🎤' },
-    { id: 7, name: 'Rising Star', emoji: '⭐' },
-    { id: 8, name: 'Veteran', emoji: '🎯' }
+    { id: 1, name: 'Street Style MC', emoji: '🎤', description: 'Classic street rapper' },
+    { id: 2, name: 'Trap Artist', emoji: '👨‍🎤', description: 'Modern trap vibes' },
+    { id: 3, name: 'Female MC', emoji: '👩‍🎤', description: 'Powerful female rapper' },
+    { id: 4, name: 'Underground Legend', emoji: '🎭', description: 'Raw underground style' },
+    { id: 5, name: 'Luxury Rapper', emoji: '💎', description: 'High-end lifestyle' },
+    { id: 6, name: 'Rising Star', emoji: '⭐', description: 'Next generation talent' },
+    { id: 7, name: 'Conscious MC', emoji: '🧠', description: 'Deep lyrical content' },
+    { id: 8, name: 'Party Rapper', emoji: '🎉', description: 'High-energy performer' }
   ];
 
   const cities = [
-    { name: 'Los Angeles', boost: 'Fame Boost', flag: '🌴', color: 'bg-ios-orange' },
-    { name: 'New York', boost: 'Reputation Boost', flag: '🗽', color: 'bg-ios-blue' },
-    { name: 'Atlanta', boost: 'Fan Growth', flag: '🍑', color: 'bg-ios-green' },
-    { name: 'Chicago', boost: 'Business Boost', flag: '🏙️', color: 'bg-ios-purple' }
+    { name: 'Los Angeles', boost: 'Fame Boost', flag: '🌴', color: 'bg-ios-orange', description: 'Entertainment capital' },
+    { name: 'New York', boost: 'Reputation Boost', flag: '🗽', color: 'bg-ios-blue', description: 'Hip-hop birthplace' },
+    { name: 'Atlanta', boost: 'Fan Growth', flag: '🍑', color: 'bg-ios-green', description: 'Trap music hub' },
+    { name: 'Chicago', boost: 'Business Boost', flag: '🏙️', color: 'bg-ios-purple', description: 'Drill scene center' }
   ];
 
   const randomNames = [
     'Lil Cipher', 'MC Thunder', 'Rap Phantom', 'Young Legend', 'Flow Master',
-    'Beat King', 'Rhyme Slayer', 'Street Prophet', 'Golden Voice', 'Mic Drop'
+    'Beat King', 'Rhyme Slayer', 'Street Prophet', 'Golden Voice', 'Mic Drop',
+    'Cash Flow', 'Fire Bars', 'Ice Cold', 'Real Talk', 'Boss Mode',
+    'Night Hawk', 'City King', 'Pure Energy', 'Diamond Mind', 'Storm Rider'
   ];
 
   const generateRandomName = () => {
@@ -60,7 +63,7 @@ export default function CharacterCreation() {
   const findAvailableSlot = () => {
     // If we have a target slot, use it
     if (targetSlot) return targetSlot;
-    
+
     // Otherwise find first available slot
     for (let i = 1; i <= 3; i++) {
       const save = localStorage.getItem(`rapCareer_slot_${i}`);
@@ -109,6 +112,7 @@ export default function CharacterCreation() {
       tracks: [],
       albums: [],
       musicVideos: [],
+      concerts: [],
       socialPosts: [],
       releases: [],
       earnings: {
@@ -132,28 +136,29 @@ export default function CharacterCreation() {
 
     // Load into current game state
     dispatch({ type: 'LOAD_GAME_STATE', payload: gameState });
+
     navigate('/game/home');
   };
 
   return (
-    <div className="min-h-screen bg-ios-bg">
+    <div className="min-h-screen bg-gradient-to-br from-rap-gold/20 via-ios-orange/20 to-ios-red/20">
       {/* Header */}
-      <div className="bg-white px-6 py-4 shadow-ios">
+      <div className="bg-white/80 backdrop-blur-md px-6 py-4 shadow-ios sticky top-0 z-50">
         <div className="flex items-center justify-between pt-8">
           <button
-            onClick={() => step > 1 ? setStep(step - 1) : navigate('/menu')}
+            onClick={() => (step > 1 ? setStep(step - 1) : navigate('/menu'))}
             className="p-2 hover:bg-ios-gray6 rounded-full transition-colors"
           >
             <SafeIcon icon={FiChevronLeft} className="text-xl text-ios-blue" />
           </button>
           <div className="flex-1 text-center">
-            <h1 className="text-lg font-semibold text-gray-900">Create Artist</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Create Your Rap Persona</h1>
             <div className="flex justify-center space-x-2 mt-2">
               {[1, 2, 3].map((num) => (
                 <div
                   key={num}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    step >= num ? 'bg-ios-blue' : 'bg-ios-gray4'
+                    step >= num ? 'bg-rap-gold' : 'bg-ios-gray4'
                   }`}
                 />
               ))}
@@ -166,16 +171,11 @@ export default function CharacterCreation() {
       <div className="px-6 py-6">
         {/* Step 1: Avatar Selection */}
         {step === 1 && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-          >
+          <motion.div className="space-y-6" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="text-center">
-              <SafeIcon icon={FiUser} className="text-4xl text-ios-blue mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Your Avatar</h2>
-              <p className="text-ios-gray">Pick your rap style</p>
+              <SafeIcon icon={FiUser} className="text-4xl text-rap-gold mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Your Style</h2>
+              <p className="text-ios-gray">Pick your rapper persona</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -183,19 +183,20 @@ export default function CharacterCreation() {
                 <motion.button
                   key={avatar.id}
                   onClick={() => setCharacter({ ...character, avatar: avatar.id })}
-                  className={`p-6 rounded-ios-lg transition-all ${
+                  className={`p-4 rounded-2xl transition-all ${
                     character.avatar === avatar.id
-                      ? 'bg-ios-blue shadow-ios-lg border-2 border-ios-blue'
+                      ? 'bg-gradient-to-br from-rap-gold to-ios-orange shadow-ios-lg border-2 border-rap-gold text-white'
                       : 'bg-white shadow-ios border-2 border-transparent hover:shadow-ios-lg'
                   }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className="text-4xl mb-3">{avatar.emoji}</div>
-                  <div className={`text-sm font-medium ${
-                    character.avatar === avatar.id ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <div className="text-3xl mb-2">{avatar.emoji}</div>
+                  <div className={`text-sm font-medium ${character.avatar === avatar.id ? 'text-white' : 'text-gray-900'}`}>
                     {avatar.name}
+                  </div>
+                  <div className={`text-xs ${character.avatar === avatar.id ? 'text-white/80' : 'text-ios-gray'}`}>
+                    {avatar.description}
                   </div>
                 </motion.button>
               ))}
@@ -205,20 +206,15 @@ export default function CharacterCreation() {
 
         {/* Step 2: Stage Name */}
         {step === 2 && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-          >
+          <motion.div className="space-y-6" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="text-center">
               <div className="text-4xl mb-4">🎤</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Stage Name</h2>
-              <p className="text-ios-gray">How will fans know you?</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Rap Name</h2>
+              <p className="text-ios-gray">What will fans call you?</p>
             </div>
 
             <div className="space-y-4">
-              <div className="bg-white rounded-ios-lg shadow-ios p-4">
+              <div className="bg-white rounded-2xl shadow-ios p-4">
                 <input
                   type="text"
                   value={character.stageName}
@@ -231,27 +227,32 @@ export default function CharacterCreation() {
 
               <button
                 onClick={generateRandomName}
-                className="w-full flex items-center justify-center space-x-2 p-4 bg-ios-gray5 rounded-ios-lg hover:bg-ios-gray4 transition-colors"
+                className="w-full flex items-center justify-center space-x-2 p-4 bg-gradient-to-r from-rap-gold to-ios-orange text-white rounded-2xl hover:shadow-ios-lg transition-all active:scale-95"
               >
-                <SafeIcon icon={FiShuffle} className="text-lg text-ios-gray" />
-                <span className="font-medium text-ios-gray">Generate Random Name</span>
+                <SafeIcon icon={FiShuffle} className="text-lg" />
+                <span className="font-medium">Generate Random Name</span>
               </button>
+
+              {/* Name suggestions */}
+              <div className="bg-white/50 p-4 rounded-2xl">
+                <h3 className="font-semibold text-gray-900 mb-2">💡 Name Tips:</h3>
+                <div className="text-sm text-ios-gray space-y-1">
+                  <p>• Keep it short and memorable</p>
+                  <p>• Make it sound cool when announced</p>
+                  <p>• Consider your rap style and personality</p>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
 
         {/* Step 3: City Selection */}
         {step === 3 && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-          >
+          <motion.div className="space-y-6" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="text-center">
-              <SafeIcon icon={FiMapPin} className="text-4xl text-ios-blue mx-auto mb-4" />
+              <SafeIcon icon={FiMapPin} className="text-4xl text-rap-gold mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Your City</h2>
-              <p className="text-ios-gray">Each city provides unique benefits</p>
+              <p className="text-ios-gray">Each city provides unique benefits for your career</p>
             </div>
 
             <div className="space-y-3">
@@ -259,34 +260,33 @@ export default function CharacterCreation() {
                 <motion.button
                   key={city.name}
                   onClick={() => setCharacter({ ...character, city: city.name })}
-                  className={`w-full flex items-center justify-between p-4 rounded-ios-lg transition-all ${
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${
                     character.city === city.name
-                      ? 'bg-ios-blue shadow-ios-lg'
+                      ? 'bg-gradient-to-r from-rap-gold to-ios-orange shadow-ios-lg text-white'
                       : 'bg-white shadow-ios hover:shadow-ios-lg'
                   }`}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                 >
                   <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 ${city.color} rounded-ios flex items-center justify-center text-xl`}>
+                    <div className={`w-12 h-12 ${city.color} rounded-2xl flex items-center justify-center text-xl shadow-lg`}>
                       {city.flag}
                     </div>
                     <div className="text-left">
-                      <div className={`font-semibold ${
-                        character.city === city.name ? 'text-white' : 'text-gray-900'
-                      }`}>
+                      <div className={`font-semibold ${character.city === city.name ? 'text-white' : 'text-gray-900'}`}>
                         {city.name}
                       </div>
-                      <div className={`text-sm ${
-                        character.city === city.name ? 'text-white/80' : 'text-ios-gray'
-                      }`}>
+                      <div className={`text-sm ${character.city === city.name ? 'text-white/80' : 'text-ios-blue'}`}>
                         {city.boost}
+                      </div>
+                      <div className={`text-xs ${character.city === city.name ? 'text-white/60' : 'text-ios-gray'}`}>
+                        {city.description}
                       </div>
                     </div>
                   </div>
                   {character.city === city.name && (
                     <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                      <div className="w-3 h-3 bg-ios-blue rounded-full"></div>
+                      <div className="w-3 h-3 bg-rap-gold rounded-full"></div>
                     </div>
                   )}
                 </motion.button>
@@ -294,28 +294,32 @@ export default function CharacterCreation() {
             </div>
 
             {/* Character Preview */}
-            <div className="bg-white rounded-ios-lg shadow-ios p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Preview</h3>
+            <div className="bg-white rounded-2xl shadow-ios p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">🎯 Your Rap Persona</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-ios-gray">Avatar:</span>
+                  <span className="text-ios-gray">Style:</span>
                   <span className="font-medium text-gray-900">
-                    {avatars.find(a => a.id === character.avatar)?.name}
+                    {avatars.find((a) => a.id === character.avatar)?.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ios-gray">Stage Name:</span>
-                  <span className="font-medium text-ios-blue">
+                  <span className="font-medium text-rap-gold">
                     {character.stageName || 'Not set'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-ios-gray">City:</span>
+                  <span className="text-ios-gray">Home City:</span>
                   <span className="font-medium text-gray-900">{character.city}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ios-gray">Starting Age:</span>
                   <span className="font-medium text-gray-900">20 years</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ios-gray">Career Length:</span>
+                  <span className="font-medium text-ios-purple">40 years max</span>
                 </div>
               </div>
             </div>
@@ -327,13 +331,13 @@ export default function CharacterCreation() {
           <button
             onClick={handleNext}
             disabled={step === 2 && !character.stageName.trim()}
-            className={`w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-ios-lg font-semibold text-white transition-all ${
-              (step === 2 && !character.stageName.trim())
+            className={`w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-2xl font-semibold text-white transition-all ${
+              step === 2 && !character.stageName.trim()
                 ? 'bg-ios-gray3 cursor-not-allowed'
-                : 'bg-ios-blue shadow-ios-lg hover:shadow-ios-xl active:scale-95'
+                : 'bg-gradient-to-r from-rap-gold to-ios-orange shadow-ios-lg hover:shadow-ios-xl active:scale-95'
             }`}
           >
-            <span>{step === 3 ? 'Start Career' : 'Continue'}</span>
+            <span>{step === 3 ? 'Start Your Rap Career' : 'Continue'}</span>
             <SafeIcon icon={FiArrowRight} className="text-lg" />
           </button>
         </div>

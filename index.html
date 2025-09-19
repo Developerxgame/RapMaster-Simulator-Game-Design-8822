@@ -4,9 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0" />
-    <title>RapMaster Simulator</title>
+    <title>RapMaster Simulator v1.2.0 - Complete Musician Career System</title>
+    <meta name="description" content="Build your music empire from rookie to legend with realistic career progression, streaming analytics, and industry mechanics" />
+    <meta name="theme-color" content="#FFD700" />
+    
     <style>
-      /* Prevent zoom and ensure mobile responsiveness */
+      /* Enhanced iOS-style mobile optimization */
       html, body {
         touch-action: manipulation;
         -webkit-text-size-adjust: 100%;
@@ -20,20 +23,22 @@
         position: fixed;
         width: 100%;
         height: 100%;
+        background: #F2F2F7;
       }
-      
+
       #root {
         width: 100%;
         height: 100%;
         overflow-y: auto;
         overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
       }
-      
+
       /* Disable double-tap zoom */
       * {
         touch-action: manipulation;
       }
-      
+
       /* Prevent text selection on mobile */
       input, textarea {
         -webkit-user-select: text;
@@ -41,6 +46,32 @@
         -moz-user-select: text;
         -ms-user-select: text;
         user-select: text;
+      }
+
+      /* iOS-style loading spinner */
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Enhanced animations */
+      @keyframes slideUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Smooth transitions */
+      * {
+        transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+      }
+
+      /* Enhanced musician theme */
+      .musician-gradient {
+        background: linear-gradient(135deg, #FFD700 0%, #FF9F0A 50%, #FF453A 100%);
+      }
+      
+      .career-glow {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
       }
     </style>
   </head>

@@ -116,7 +116,7 @@ export default function CollaborationsPage() {
           energy: player.energy - artist.energy,
           netWorth: player.netWorth - artist.cost,
           fame: player.fame + artist.fameBoost,
-          reputation: player.reputation + Math.floor(artist.fameBonus / 2)
+          reputation: player.reputation + Math.floor(artist.fameBoost / 2)
         }
       });
 
@@ -153,9 +153,11 @@ export default function CollaborationsPage() {
   };
 
   const canCollaborate = (artist) => {
-    return player.fame >= artist.requirements.fame && 
-           player.energy >= artist.energy && 
-           player.netWorth >= artist.cost;
+    return (
+      player.fame >= artist.requirements.fame &&
+      player.energy >= artist.energy &&
+      player.netWorth >= artist.cost
+    );
   };
 
   const formatPrice = (price) => {
@@ -168,7 +170,7 @@ export default function CollaborationsPage() {
     return (
       <div className="min-h-screen bg-ios-bg flex items-center justify-center px-6">
         <motion.div
-          className="text-center bg-white p-8 rounded-ios-xl shadow-ios-lg"
+          className="text-center bg-white p-8 rounded-2xl shadow-ios-lg"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
         >
@@ -195,7 +197,7 @@ export default function CollaborationsPage() {
         </div>
 
         {/* Player Status */}
-        <div className="bg-white p-4 rounded-ios-lg shadow-ios">
+        <div className="bg-white p-4 rounded-2xl shadow-ios">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-lg font-bold text-ios-orange">{player.energy}/100</div>
@@ -213,7 +215,7 @@ export default function CollaborationsPage() {
         </div>
 
         {/* Collaboration Benefits */}
-        <div className="bg-gradient-to-r from-ios-purple to-ios-pink p-4 rounded-ios-lg text-white shadow-ios-lg">
+        <div className="bg-gradient-to-r from-ios-purple to-ios-pink p-4 rounded-2xl text-white shadow-ios-lg">
           <h3 className="font-bold text-base mb-2">🤝 Collaboration Benefits</h3>
           <div className="text-sm text-white/90 space-y-1">
             <p>• Higher quality tracks than solo work</p>
@@ -232,7 +234,7 @@ export default function CollaborationsPage() {
               return (
                 <motion.div
                   key={artist.id}
-                  className={`bg-white rounded-ios-lg shadow-ios transition-all ${
+                  className={`bg-white rounded-2xl shadow-ios transition-all ${
                     available ? 'hover:shadow-ios-lg' : 'opacity-60'
                   }`}
                   initial={{ opacity: 0, y: 20 }}
@@ -242,7 +244,7 @@ export default function CollaborationsPage() {
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-ios-blue to-ios-purple rounded-ios-lg flex items-center justify-center text-2xl">
+                        <div className="w-16 h-16 bg-gradient-to-br from-ios-blue to-ios-purple rounded-2xl flex items-center justify-center text-2xl">
                           {artist.avatar}
                         </div>
                         <div className="flex-1">
@@ -261,31 +263,29 @@ export default function CollaborationsPage() {
                             ))}
                             <span className="text-sm text-ios-gray ml-2">{artist.fame} Fame</span>
                           </div>
-                          <div className="text-xs text-ios-purple">
-                            Specialty: {artist.specialty}
-                          </div>
+                          <div className="text-xs text-ios-purple">Specialty: {artist.specialty}</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-4 gap-3 mb-4">
-                      <div className="text-center p-2 bg-ios-gray6 rounded-ios">
+                      <div className="text-center p-2 bg-ios-gray6 rounded-xl">
                         <SafeIcon icon={FiDollarSign} className="text-ios-green mx-auto mb-1" />
                         <div className="text-sm font-bold text-gray-900">{formatPrice(artist.cost)}</div>
                         <div className="text-xs text-ios-gray">Cost</div>
                       </div>
-                      <div className="text-center p-2 bg-ios-gray6 rounded-ios">
+                      <div className="text-center p-2 bg-ios-gray6 rounded-xl">
                         <SafeIcon icon={FiZap} className="text-ios-orange mx-auto mb-1" />
                         <div className="text-sm font-bold text-gray-900">{artist.energy}</div>
                         <div className="text-xs text-ios-gray">Energy</div>
                       </div>
-                      <div className="text-center p-2 bg-ios-gray6 rounded-ios">
+                      <div className="text-center p-2 bg-ios-gray6 rounded-xl">
                         <SafeIcon icon={FiTrendingUp} className="text-ios-blue mx-auto mb-1" />
                         <div className="text-sm font-bold text-gray-900">+{artist.fameBoost}</div>
                         <div className="text-xs text-ios-gray">Fame</div>
                       </div>
-                      <div className="text-center p-2 bg-ios-gray6 rounded-ios">
+                      <div className="text-center p-2 bg-ios-gray6 rounded-xl">
                         <SafeIcon icon={FiAward} className="text-ios-purple mx-auto mb-1" />
                         <div className="text-sm font-bold text-gray-900">+{artist.qualityBonus}</div>
                         <div className="text-xs text-ios-gray">Quality</div>
@@ -294,15 +294,20 @@ export default function CollaborationsPage() {
 
                     {/* Requirements */}
                     {!available && (
-                      <div className="mb-3 p-3 bg-ios-red/10 rounded-ios">
+                      <div className="mb-3 p-3 bg-ios-red/10 rounded-xl">
                         <p className="text-sm text-ios-red font-medium">Requirements not met:</p>
                         <div className="text-xs text-ios-red mt-1">
-                          {player.fame < artist.requirements.fame && 
-                            <span>• Need {artist.requirements.fame} fame (you have {player.fame})</span>}
-                          {player.energy < artist.energy && 
-                            <span>• Need {artist.energy} energy (you have {player.energy})</span>}
-                          {player.netWorth < artist.cost && 
-                            <span>• Need {formatPrice(artist.cost)} (you have {formatPrice(player.netWorth)})</span>}
+                          {player.fame < artist.requirements.fame && (
+                            <span>• Need {artist.requirements.fame} fame (you have {player.fame})</span>
+                          )}
+                          {player.energy < artist.energy && (
+                            <span>• Need {artist.energy} energy (you have {player.energy})</span>
+                          )}
+                          {player.netWorth < artist.cost && (
+                            <span>
+                              • Need {formatPrice(artist.cost)} (you have {formatPrice(player.netWorth)})
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -310,7 +315,7 @@ export default function CollaborationsPage() {
                     <button
                       onClick={() => handleCollaborate(artist)}
                       disabled={!available}
-                      className={`w-full py-3 px-4 rounded-ios-lg font-semibold transition-all ${
+                      className={`w-full py-3 px-4 rounded-xl font-semibold transition-all ${
                         available
                           ? 'bg-gradient-to-r from-ios-purple to-ios-pink text-white shadow-ios hover:shadow-ios-lg active:scale-95'
                           : 'bg-ios-gray4 text-ios-gray cursor-not-allowed'
@@ -331,7 +336,7 @@ export default function CollaborationsPage() {
             <h2 className="text-lg font-bold text-gray-900 mb-4">My Collaborations</h2>
             <div className="space-y-3">
               {collaborations.map((collab) => (
-                <div key={collab.id} className="bg-white p-4 rounded-ios-lg shadow-ios">
+                <div key={collab.id} className="bg-white p-4 rounded-2xl shadow-ios">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div className="text-2xl">{collab.artistAvatar}</div>
@@ -347,16 +352,13 @@ export default function CollaborationsPage() {
                           <SafeIcon
                             key={i}
                             icon={FiStar}
-                            className={`text-xs ${
-                              i < collab.quality ? 'text-ios-orange' : 'text-ios-gray4'
-                            }`}
+                            className={`text-xs ${i < collab.quality ? 'text-ios-orange' : 'text-ios-gray4'}`}
                           />
                         ))}
                       </div>
                       <div className="text-xs text-ios-gray">Quality: {collab.quality}/10</div>
                     </div>
                   </div>
-                  
                   {!collab.released && (
                     <button
                       onClick={() => {
@@ -371,7 +373,7 @@ export default function CollaborationsPage() {
                           }
                         });
                       }}
-                      className="w-full bg-ios-purple text-white py-2 px-4 rounded-ios font-semibold hover:shadow-ios transition-all active:scale-95"
+                      className="w-full bg-ios-purple text-white py-2 px-4 rounded-xl font-semibold hover:shadow-ios transition-all active:scale-95"
                     >
                       <SafeIcon icon={FiMusic} className="inline mr-2" />
                       Release Collaboration

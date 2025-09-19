@@ -4,27 +4,20 @@ import { useGame } from '../../context/GameContext';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { 
-  FiHome, FiBriefcase, FiMusic, FiGlobe, FiShoppingBag, FiBarChart3, 
-  FiTrendingUp, FiUsers, FiMic, FiAward 
-} = FiIcons;
+const { FiHome, FiBriefcase, FiMusic, FiGlobe, FiShoppingBag } = FiIcons;
 
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { dispatch } = useGame();
 
+  // Only 5 tabs as requested - enhanced size and styling
   const navItems = [
     { icon: FiHome, path: '/game/home', label: 'Home' },
     { icon: FiBriefcase, path: '/game/job', label: 'Work' },
     { icon: FiMusic, path: '/game/studio', label: 'Studio' },
-    { icon: FiUsers, path: '/game/collaborations', label: 'Collabs' },
-    { icon: FiMic, path: '/game/concerts', label: 'Concerts' },
     { icon: FiGlobe, path: '/game/social', label: 'Social' },
-    { icon: FiShoppingBag, path: '/game/shop', label: 'Shop' },
-    { icon: FiBarChart3, path: '/game/stats', label: 'Stats' },
-    { icon: FiTrendingUp, path: '/game/skills', label: 'Skills' },
-    { icon: FiAward, path: '/game/awards', label: 'Awards' }
+    { icon: FiShoppingBag, path: '/game/shop', label: 'Shop' }
   ];
 
   const handleNavigation = (path) => {
@@ -33,24 +26,30 @@ export default function BottomNav() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-ios-gray5">
-      <div className="flex items-center justify-around px-1 py-2 pb-8 overflow-x-auto">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-ios-gray5 safe-area-bottom z-40">
+      {/* Enhanced navbar size and improved styling */}
+      <div className="flex items-center justify-around px-3 py-4 pb-6">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <button
               key={item.path}
               onClick={() => handleNavigation(item.path)}
-              className={`flex flex-col items-center py-1.5 px-1 rounded-ios transition-all duration-200 min-w-0 flex-shrink-0 ${
-                isActive ? 'text-ios-blue' : 'text-ios-gray hover:text-gray-900'
+              className={`flex flex-col items-center py-3 px-4 rounded-2xl transition-all duration-200 min-w-16 ${
+                isActive
+                  ? 'text-ios-blue bg-ios-blue/10 scale-105 shadow-lg'
+                  : 'text-ios-gray hover:text-gray-900 hover:bg-ios-gray6'
               }`}
             >
-              <div className={`p-1 rounded-ios transition-all ${
-                isActive ? 'bg-ios-blue/10' : 'hover:bg-ios-gray6'
-              }`}>
-                <SafeIcon icon={item.icon} className="text-base" />
+              {/* iOS-style app icon design */}
+              <div
+                className={`p-3 rounded-2xl transition-all mb-2 shadow-sm ${
+                  isActive ? 'bg-ios-blue/20 shadow-ios transform scale-110' : 'bg-transparent'
+                }`}
+              >
+                <SafeIcon icon={item.icon} className="text-2xl" />
               </div>
-              <span className="text-xs font-medium mt-1 truncate max-w-12">{item.label}</span>
+              <span className="text-xs font-medium">{item.label}</span>
             </button>
           );
         })}

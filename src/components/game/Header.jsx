@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../../context/GameContext';
 import SafeIcon from '../../common/SafeIcon';
+import NotificationCenter from './NotificationCenter';
 import * as FiIcons from 'react-icons/fi';
 
 const { FiSettings, FiDollarSign, FiZap, FiPlus } = FiIcons;
@@ -17,7 +18,6 @@ export default function Header() {
   };
 
   const formatMoney = (amount) => {
-    // Always show whole numbers for money display
     const wholeAmount = Math.floor(amount);
     if (wholeAmount >= 1000000000000) {
       return `$${(wholeAmount / 1000000000000).toFixed(1)}T`;
@@ -31,64 +31,62 @@ export default function Header() {
     return `$${wholeAmount}`;
   };
 
-  const getMonthName = (week) => {
-    const month = Math.ceil(week / 4.33);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months[(month - 1) % 12];
+  // Enhanced date formatting - e.g., "1 JAN 2020"
+  const getDateString = () => {
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const month = Math.ceil(player.week / 4.33);
+    const monthName = monthNames[(month - 1) % 12];
+    return `${player.week} ${monthName} ${player.year}`;
   };
 
-  // Calculate years left - career ends at age 60
-  const yearsLeft = 60 - player.age;
-
   return (
-    <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-ios-gray5 px-4 py-3 z-50">
-      {/* Status bar spacer */}
-      <div className="h-8"></div>
-      
+    <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-ios-gray5 px-3 sm:px-4 py-3 z-40 safe-area-top">
+      {/* Status bar spacer for mobile */}
+      <div className="h-6 sm:h-8"></div>
+
       <div className="flex items-center justify-between">
         {/* Date and Progress */}
-        <div className="flex items-center space-x-3">
-          <div className="text-left">
-            <div className="text-sm font-semibold text-gray-900">
-              {getMonthName(player.week)} {player.year}
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+          <div className="text-left min-w-0">
+            <div className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+              {getDateString()}
             </div>
-            <div className="text-xs text-ios-gray">
-              Age {player.age} • {yearsLeft} years left
+            <div className="text-xs text-ios-gray truncate">
+              Age {player.age}
             </div>
           </div>
-          <div className="w-16 h-2 bg-ios-gray5 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-ios-blue rounded-full transition-all duration-300" 
-              style={{ width: `${getWeekProgress()}%` }} 
+          <div className="w-12 sm:w-16 h-1.5 sm:h-2 bg-ios-gray5 rounded-full overflow-hidden flex-shrink-0">
+            <div
+              className="h-full bg-ios-blue rounded-full transition-all duration-300"
+              style={{ width: `${getWeekProgress()}%` }}
             />
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1 bg-ios-green/10 px-3 py-1.5 rounded-full">
-            <SafeIcon icon={FiDollarSign} className="text-ios-green text-sm" />
-            <span className="text-sm font-semibold text-ios-green">
+        {/* Stats - Responsive */}
+        <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+          <div className="flex items-center space-x-1 bg-ios-green/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
+            <SafeIcon icon={FiDollarSign} className="text-ios-green text-xs sm:text-sm" />
+            <span className="text-xs sm:text-sm font-semibold text-ios-green">
               {formatMoney(player.netWorth)}
             </span>
-            <button className="ml-1 p-0.5">
+            <button className="ml-1 p-0.5 min-h-6 min-w-6">
               <SafeIcon icon={FiPlus} className="text-xs text-ios-green/70" />
             </button>
           </div>
-          
-          <div className="flex items-center space-x-1 bg-ios-orange/10 px-3 py-1.5 rounded-full">
-            <SafeIcon icon={FiZap} className="text-ios-orange text-sm" />
-            <span className="text-sm font-semibold text-ios-orange">{player.energy}</span>
-            <button className="ml-1 p-0.5">
+          <div className="flex items-center space-x-1 bg-ios-orange/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
+            <SafeIcon icon={FiZap} className="text-ios-orange text-xs sm:text-sm" />
+            <span className="text-xs sm:text-sm font-semibold text-ios-orange">{player.energy}</span>
+            <button className="ml-1 p-0.5 min-h-6 min-w-6">
               <SafeIcon icon={FiPlus} className="text-xs text-ios-orange/70" />
             </button>
           </div>
-          
-          <button 
-            onClick={() => navigate('/settings')} 
-            className="p-2 hover:bg-ios-gray6 rounded-full transition-colors"
+          <NotificationCenter />
+          <button
+            onClick={() => navigate('/settings')}
+            className="p-2 hover:bg-ios-gray6 rounded-full transition-colors min-h-10 min-w-10"
           >
-            <SafeIcon icon={FiSettings} className="text-ios-gray text-lg" />
+            <SafeIcon icon={FiSettings} className="text-ios-gray text-base sm:text-lg" />
           </button>
         </div>
       </div>
